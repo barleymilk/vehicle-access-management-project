@@ -1,407 +1,60 @@
 "use client";
 
 import Header from "@/components/Header";
-import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { InputField } from "@/components/ui/input-field";
-import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ListFilter,
-} from "lucide-react";
+import { AccessTable } from "@/app/access/_components/AccessTable";
+import { SearchFilter } from "@/app/access/_components/SearchFilter";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { ErrorDisplay } from "@/components/ui/error-display";
+import { useAccessRecords } from "@/hooks/useSupabase";
 import { useState } from "react";
 
-const Pagination = () => {
-  const [totalPages, setTotalPages] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  return (
-    <div className="flex justify-center items-center gap-2">
-      <Button
-        variant="outline"
-        className="rounded-full"
-        onClick={() => setCurrentPage(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
-        <ChevronLeftIcon />
-      </Button>
-      <span>
-        {currentPage} / {totalPages}
-      </span>
-      <Button
-        variant="outline"
-        className="rounded-full"
-        onClick={() => setCurrentPage(currentPage + 1)}
-        disabled={currentPage === totalPages}
-      >
-        <ChevronRightIcon />
-      </Button>
-    </div>
-  );
-};
-
 export default function Access() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
+  const {
+    data: accessRecords,
+    loading,
+    error,
+    count,
+    refetch,
+  } = useAccessRecords(currentPage, pageSize);
+  const totalPages = count ? Math.ceil(count / pageSize) : 0;
+
+  console.log(accessRecords);
+
+  if (error) {
+    return (
+      <>
+        <Header title="출입 기록" />
+        <main className="mx-6 pb-24">
+          <ErrorDisplay
+            message="데이터를 불러오는 중 오류가 발생했습니다."
+            onRetry={refetch}
+          />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Header title="출입 기록" />
       <main>
         <div className="relative h-[calc(100vh-var(--header-height)-50px)] overflow-auto">
-          <Table className="mx-6">
-            <TableHeader className="sticky top-0">
-              <TableRow className="bg-[var(--point)] hover:bg-muted/50">
-                <TableHead className="rounded-tl-lg text-center text-white">
-                  입장일시
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  퇴장일시
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  방문목적
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  차량번호
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  차량종류
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  방문자구분
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  운전자명
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  운전자소속
-                </TableHead>
-                <TableHead className="text-center text-white">
-                  운전자번호
-                </TableHead>
-                <TableHead className="text-center text-white">동승자</TableHead>
-                <TableHead className="rounded-tr-lg text-center text-white">
-                  특이사항
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>2025-07-27 10:00:00</TableCell>
-                <TableCell>방문</TableCell>
-                <TableCell>1234</TableCell>
-                <TableCell>차량</TableCell>
-                <TableCell>방문자</TableCell>
-                <TableCell>홍길동</TableCell>
-                <TableCell>소속</TableCell>
-                <TableCell>010-1234-5678</TableCell>
-                <TableCell>동승자</TableCell>
-                <TableCell>특이사항</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <AccessTable
+            data={accessRecords}
+            loading={loading}
+            currentPage={currentPage}
+          />
         </div>
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
-          <Pagination />
-          <Drawer>
-            <DrawerTrigger asChild>
-              <Button className="fixed right-4">
-                <ListFilter className="h-4 w-4" />
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="h-[90vh]">
-              <DrawerHeader className="flex-shrink-0">
-                <DrawerTitle>검색 옵션</DrawerTitle>
-                <DrawerDescription className="sr-only">
-                  여러 검색 옵션을 선택할 수 있습니다.
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="flex-1 overflow-y-auto px-6">
-                <InputField
-                  label="차량번호"
-                  id="plate_number"
-                  value=""
-                  placeholder="01가1234 (혹은 기타)"
-                />
-                <InputField
-                  label="차량종류"
-                  id="vehicle_type"
-                  value=""
-                  placeholder="SUV"
-                />
-                <InputField label="운전자명" id="name" value="" />
-                <InputField label="운전자소속" id="org_dept_pos" value="" />
-                <InputField
-                  label="운전자번호"
-                  id="phone"
-                  value=""
-                  placeholder="숫자만 입력"
-                />
-                <InputField label="동승자" id="passengers" value="" />
-                <InputField label="특이사항" id="notes" value="" />
-                <div className="flex gap-2 mt-3">
-                  <Label
-                    htmlFor="entered_at"
-                    className="w-22 flex-shrink-0 text-md font-semibold"
-                  >
-                    검색 시작일
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="rounded-full flex-1">
-                        날짜 선택
-                        <ChevronDownIcon />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar mode="single" captionLayout="dropdown" />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Label
-                    htmlFor="entered_at"
-                    className="w-22 flex-shrink-0 text-md font-semibold"
-                  >
-                    검색 종료일
-                  </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="rounded-full flex-1">
-                        날짜 선택
-                        <ChevronDownIcon />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar mode="single" captionLayout="dropdown" />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              <DrawerFooter className="flex-shrink-0">
-                <DrawerClose asChild>
-                  <Button>닫기</Button>
-                </DrawerClose>
-              </DrawerFooter>
-            </DrawerContent>
-          </Drawer>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+          <SearchFilter />
         </div>
       </main>
     </>
