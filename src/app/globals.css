@@ -45,6 +45,8 @@
 
 :root {
   --radius: 0.625rem;
+  --header-height: 4rem;
+  --point: oklch(0.5904 0.219 278.21);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

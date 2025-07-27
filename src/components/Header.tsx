@@ -34,7 +34,10 @@ export default function Header({
   };
 
   return (
-    <header className="bg-background sticky top-0 z-50 border-b">
+    <header
+      className="bg-background sticky top-0 z-50 border-b"
+      style={{ height: "var(--header-height)" }}
+    >
       <Sheet>
         <div className="flex items-center justify-between px-4 py-3">
           {/* 왼쪽: 메뉴 or 뒤로가기 아이콘 */}
