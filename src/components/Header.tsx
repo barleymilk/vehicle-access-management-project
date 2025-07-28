@@ -21,12 +21,14 @@ interface HeaderProps {
   back?: boolean;
   title?: string;
   onBack?: () => void;
+  onHomeClick?: () => void;
 }
 
 export default function Header({
   back = false,
   title = "타이틀",
   onBack = () => {},
+  onHomeClick,
 }: HeaderProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -70,7 +72,13 @@ export default function Header({
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push("/")}
+              onClick={() => {
+                if (onHomeClick) {
+                  onHomeClick();
+                } else {
+                  router.push("/");
+                }
+              }}
               aria-label="홈으로 이동"
             >
               <House className="w-8 h-8" />

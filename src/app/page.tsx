@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { Keypad } from "@/components/ui/keypad";
 import { VehicleChoice } from "@/app/_components/VehicleChoice";
@@ -50,6 +51,9 @@ export default function Home() {
   // 2) 차량 데이터 한 개: 1-3-4
   // 3) 새로운 차량 or 차량 데이터 없음: 1-4
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [mode, setMode] = useState<"search" | "choice" | "info" | "record">(
     "search"
   );
@@ -59,34 +63,54 @@ export default function Home() {
   const [driverInfo, setDriverInfo] = useState<Driver | null>(null);
   const [alertMessage, setAlertMessage] = useState<string>("");
 
+  // URL 파라미터에서 모드 확인
+  useEffect(() => {
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "search" || !urlMode) {
+      setMode("search");
+      setVehicles([]);
+      setVehicleInfo(null);
+      setDrivers([]);
+      setDriverInfo(null);
+      setAlertMessage("");
+    }
+  }, [searchParams]);
+
+  // 모드 변경 시 URL 업데이트
+  const updateMode = (newMode: "search" | "choice" | "info" | "record") => {
+    setMode(newMode);
+    if (newMode === "search") {
+      router.replace("/");
+    } else {
+      router.replace(`/?mode=${newMode}`);
+    }
+  };
+
   // 뒤로가기 핸들러
   const handleBack = () => {
     console.log("뒤로 가기!");
     if (mode === "choice") {
-      setMode("search");
-      setAlertMessage("");
+      updateMode("search");
       setVehicles([]);
       return;
     } else if (mode === "info") {
       if (vehicles.length > 1) {
-        setMode("choice");
+        updateMode("choice");
         return;
       } else if (vehicles.length === 1) {
-        setMode("search");
-        setAlertMessage("");
+        updateMode("search");
         setDriverInfo(null);
         return;
       }
     } else if (mode === "record") {
       if (!vehicleInfo && vehicles.length === 0) {
-        setMode("search");
-        setAlertMessage("");
+        updateMode("search");
         return;
       } else if (!vehicleInfo) {
-        setMode("choice");
+        updateMode("choice");
         return;
       }
-      setMode("info");
+      updateMode("info");
       return;
     }
   };
@@ -94,7 +118,7 @@ export default function Home() {
   // 1. 차량 번호 검색 -> 차량 데이터
   const handleSearch = async (plateNumber: string) => {
     if (plateNumber.length === 0) {
-      setMode("record");
+      updateMode("record");
       setAlertMessage("새로운 정보를 입력해주세요!");
       setVehicles([]);
       setVehicleInfo(null);
@@ -113,10 +137,10 @@ export default function Home() {
         setVehicles(data);
         setVehicleInfo(data[0]);
         setDrivers(driverData || []);
-        setMode("info");
+        updateMode("info");
         return;
       } else {
-        setMode("record");
+        updateMode("record");
         setAlertMessage("일치하는 정보가 없습니다.");
       }
     } else if (data.length > 1) {
@@ -124,14 +148,14 @@ export default function Home() {
       setVehicles(data);
       setVehicleInfo(null);
       setDrivers([]);
-      setMode("choice");
+      updateMode("choice");
       return;
     } else {
       // 차량 데이터가 없을 때
       setVehicles([]);
       setVehicleInfo(null);
       setDrivers([]);
-      setMode("record");
+      updateMode("record");
       return;
     }
   };
@@ -144,12 +168,12 @@ export default function Home() {
       const { data: driversData } = await searchDrivers(vehicleId);
       setVehicleInfo(vehicleInfoData[0]);
       setDrivers(driversData || null);
-      setMode("info");
+      updateMode("info");
     } else {
       setVehicleInfo(null);
       setDrivers([]);
       setDriverInfo(null);
-      setMode("record");
+      updateMode("record");
     }
   };
 
@@ -157,7 +181,7 @@ export default function Home() {
   const handleRecord = async (vehicleId: string) => {
     const { data: vehicleInfoData } = await searchVehicleInfo(vehicleId);
     setVehicleInfo(vehicleInfoData[0]);
-    setMode("record");
+    updateMode("record");
   };
 
   // 4. 기록 DB 저장
@@ -191,7 +215,7 @@ export default function Home() {
       }
 
       alert("출입 기록이 성공적으로 저장되었습니다.");
-      setMode("search"); // 저장 후 검색 화면으로 돌아가기
+      updateMode("search"); // 저장 후 검색 화면으로 돌아가기
       setAlertMessage("");
     } catch (error) {
       console.error("저장 오류:", error);
@@ -205,7 +229,7 @@ export default function Home() {
     <>
       {mode === "search" && (
         <>
-          <Header title="차량 검색" />
+          <Header title="차량 검색" onHomeClick={() => updateMode("search")} />
           <main className="mx-6 pb-24">
             <Keypad onSearch={handleSearch} />
           </main>
@@ -213,7 +237,12 @@ export default function Home() {
       )}
       {mode === "choice" && (
         <>
-          <Header back={true} title="차량 선택" onBack={handleBack} />
+          <Header
+            back={true}
+            title="차량 선택"
+            onBack={handleBack}
+            onHomeClick={() => updateMode("search")}
+          />
           <main className="mx-6 pb-24">
             <VehicleChoice onChoice={handleChoice} data={vehicles} />
           </main>
@@ -221,7 +250,12 @@ export default function Home() {
       )}
       {mode === "info" && (
         <>
-          <Header back={true} title="차량 정보" onBack={handleBack} />
+          <Header
+            back={true}
+            title="차량 정보"
+            onBack={handleBack}
+            onHomeClick={() => updateMode("search")}
+          />
           <main className="mx-6 pb-24">
             <Info
               vehicleData={vehicleInfo}
@@ -234,7 +268,12 @@ export default function Home() {
       )}
       {mode === "record" && (
         <>
-          <Header back={true} title="출입 기록" onBack={handleBack} />
+          <Header
+            back={true}
+            title="출입 기록"
+            onBack={handleBack}
+            onHomeClick={() => updateMode("search")}
+          />
           <main className="mx-6 pb-24">
             <Record
               vehicleData={vehicleInfo}
