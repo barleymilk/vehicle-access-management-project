@@ -21,22 +21,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { InputField } from "@/components/ui/input-field";
 import { ChevronDownIcon, ListFilter } from "lucide-react";
 import { useState } from "react";
+import { SearchFilters } from "@/types/search";
 
 interface SearchFilterProps {
   onSearch?: (filters: SearchFilters) => void;
-}
-
-interface SearchFilters {
-  plate_number?: string;
-  vehicle_type?: string;
-  name?: string;
-  org_dept_pos?: string;
-  phone?: string;
-  passengers?: string;
-  purpose?: string;
-  notes?: string;
-  start_date?: Date;
-  end_date?: Date;
 }
 
 export function SearchFilter({ onSearch }: SearchFilterProps) {

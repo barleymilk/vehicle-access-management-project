@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { SearchFilters } from "@/types/search";
 
 interface UseSupabaseOptions {
   onError?: (error: unknown) => void;
@@ -176,18 +177,7 @@ export function useVehicleSearch(plateNumber: string) {
 
 // 필터링된 출입 기록 조회 훅
 export function useFilteredAccessRecords(
-  filters: {
-    plate_number?: string;
-    vehicle_type?: string;
-    name?: string;
-    org_dept_pos?: string;
-    phone?: string;
-    passengers?: string;
-    purpose?: string;
-    notes?: string;
-    start_date?: Date;
-    end_date?: Date;
-  },
+  filters: SearchFilters,
   page = 1,
   pageSize = 20
 ) {
