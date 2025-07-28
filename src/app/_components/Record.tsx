@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Driver, Vehicle, RecordData } from "@/types";
 import { InputField } from "@/components/ui/input-field";
 import { FixedBottomButton } from "@/components/ui/fixed-bottom-button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { validatePlateNumber } from "@/lib/utils";
 import { CheckCircle2Icon } from "lucide-react";
 
