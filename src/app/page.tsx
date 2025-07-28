@@ -6,7 +6,7 @@ import { Keypad } from "@/components/ui/keypad";
 import { VehicleChoice } from "@/app/_components/VehicleChoice";
 import { Info } from "@/app/_components/Info";
 import { Record } from "@/app/_components/Record";
-import { Driver, Vehicle } from "@/types";
+import { Driver, Vehicle, RecordData } from "@/types";
 
 // API 호출 함수: 차량 번호 -> 차량 리스트
 async function searchVehicles(plate_number: string) {
@@ -57,12 +57,14 @@ export default function Home() {
   const [vehicleInfo, setVehicleInfo] = useState<Vehicle | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [driverInfo, setDriverInfo] = useState<Driver | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string>("");
 
   // 뒤로가기 핸들러
   const handleBack = () => {
     console.log("뒤로 가기!");
     if (mode === "choice") {
       setMode("search");
+      setAlertMessage("");
       setVehicles([]);
       return;
     } else if (mode === "info") {
@@ -71,12 +73,14 @@ export default function Home() {
         return;
       } else if (vehicles.length === 1) {
         setMode("search");
+        setAlertMessage("");
         setDriverInfo(null);
         return;
       }
     } else if (mode === "record") {
       if (!vehicleInfo && vehicles.length === 0) {
         setMode("search");
+        setAlertMessage("");
         return;
       } else if (!vehicleInfo) {
         setMode("choice");
@@ -91,6 +95,7 @@ export default function Home() {
   const handleSearch = async (plateNumber: string) => {
     if (plateNumber.length === 0) {
       setMode("record");
+      setAlertMessage("새로운 정보를 입력해주세요!");
       setVehicles([]);
       setVehicleInfo(null);
       setDrivers([]);
@@ -101,12 +106,19 @@ export default function Home() {
 
     if (data.length === 1) {
       // 차량 데이터가 1개일 때
-      const { data: driverData } = await searchDrivers(data[0].id);
-      setVehicles(data);
-      setVehicleInfo(data[0]);
-      setDrivers(driverData || []);
-      setMode("info");
-      return;
+      // - 차량 번호가 완전히 일치할 때 -> info 모드
+      // - 차량 번호가 일치하지 않을 때 -> record 모드
+      if (plateNumber.length === 4) {
+        const { data: driverData } = await searchDrivers(data[0].id);
+        setVehicles(data);
+        setVehicleInfo(data[0]);
+        setDrivers(driverData || []);
+        setMode("info");
+        return;
+      } else {
+        setMode("record");
+        setAlertMessage("일치하는 정보가 없습니다.");
+      }
     } else if (data.length > 1) {
       // 차량 데이터가 여러 개일 때
       setVehicles(data);
@@ -136,6 +148,7 @@ export default function Home() {
     } else {
       setVehicleInfo(null);
       setDrivers([]);
+      setDriverInfo(null);
       setMode("record");
     }
   };
@@ -145,6 +158,47 @@ export default function Home() {
     const { data: vehicleInfoData } = await searchVehicleInfo(vehicleId);
     setVehicleInfo(vehicleInfoData[0]);
     setMode("record");
+  };
+
+  // 4. 기록 DB 저장
+  const handleSaveRecord = async (recordData: RecordData) => {
+    try {
+      const response = await fetch("/api/save-record", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          vehicle_id: vehicleInfo?.id || null,
+          person_id: driverInfo?.id || null,
+          work_id: null, // 작업 정보는 나중에 추가
+          raw_plate_number: recordData.plateNumber.trim(),
+          raw_vehicle_type: recordData.carType.trim(),
+          raw_person_name: recordData.driverName.trim(),
+          raw_person_phone: recordData.driverNumber.trim(),
+          driver_organization: recordData.driverAffiliation.trim(),
+          passengers: recordData.companion.trim(),
+          purpose: recordData.visitPurpose.trim(),
+          notes: recordData.note.trim(),
+          is_free_pass: vehicleInfo?.is_free_pass_enabled || false,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "저장 중 오류가 발생했습니다.");
+      }
+
+      alert("출입 기록이 성공적으로 저장되었습니다.");
+      setMode("search"); // 저장 후 검색 화면으로 돌아가기
+      setAlertMessage("");
+    } catch (error) {
+      console.error("저장 오류:", error);
+      alert(
+        error instanceof Error ? error.message : "저장 중 오류가 발생했습니다."
+      );
+    }
   };
 
   return (
@@ -182,7 +236,12 @@ export default function Home() {
         <>
           <Header back={true} title="출입 기록" onBack={handleBack} />
           <main className="mx-6 pb-24">
-            <Record vehicleData={vehicleInfo} driverData={driverInfo} />
+            <Record
+              vehicleData={vehicleInfo}
+              driverData={driverInfo}
+              onSaveRecord={handleSaveRecord}
+              alertMessage={alertMessage}
+            />
           </main>
         </>
       )}

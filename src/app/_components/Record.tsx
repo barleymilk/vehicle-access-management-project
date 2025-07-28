@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { Driver, Vehicle } from "@/types";
+import { Driver, Vehicle, RecordData } from "@/types";
 import { InputField } from "@/components/ui/input-field";
 import { FixedBottomButton } from "@/components/ui/fixed-bottom-button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { validatePlateNumber } from "@/lib/utils";
+import { CheckCircle2Icon } from "lucide-react";
 
 export const Record = ({
   vehicleData = null,
   driverData = null,
+  onSaveRecord,
+  alertMessage = null,
 }: {
   vehicleData: Vehicle | null;
   driverData: Driver | null;
+  onSaveRecord: (recordData: RecordData) => Promise<void>;
+  alertMessage: string | null;
 }) => {
   console.log("Record > vehicleData:", vehicleData);
   console.log("Record > driverData:", driverData);
@@ -37,7 +44,38 @@ export const Record = ({
     }));
   };
 
-  const recordData = [
+  const handleSave = async () => {
+    // 차량번호 형식 검증
+    const plateValidation = validatePlateNumber(formData.plate_number);
+    if (!plateValidation.isValid) {
+      alert(plateValidation.message);
+      return;
+    }
+
+    // 필수 필드 검증
+    if (!formData.driver_name.trim()) {
+      alert("운전자명을 입력해주세요.");
+      return;
+    }
+
+    try {
+      await onSaveRecord({
+        plateNumber: formData.plate_number,
+        driverName: formData.driver_name,
+        carType: formData.vehicle_type,
+        driverNumber: formData.driver_phone_number,
+        driverAffiliation: formData.driver_org_dept_pos,
+        companion: formData.passenger,
+        visitPurpose: formData.purpose,
+        note: formData.special_notes,
+      });
+    } catch (error) {
+      // 에러는 onSaveRecord에서 처리됨
+      console.error("저장 오류:", error);
+    }
+  };
+
+  const formFields = [
     {
       id: "plate_number",
       label: "차량번호",
@@ -111,7 +149,13 @@ export const Record = ({
 
   return (
     <>
-      {recordData.map((item) => (
+      {alertMessage && (
+        <Alert className="mt-4 bg-[var(--muted)]">
+          <CheckCircle2Icon />
+          <AlertTitle>{alertMessage}</AlertTitle>
+        </Alert>
+      )}
+      {formFields.map((item) => (
         <InputField
           key={item.id}
           id={item.id}
@@ -125,7 +169,7 @@ export const Record = ({
           onClear={() => handleClear(item.id)}
         />
       ))}
-      <FixedBottomButton>저장하기</FixedBottomButton>
+      <FixedBottomButton onClick={handleSave}>저장하기</FixedBottomButton>
     </>
   );
 };
