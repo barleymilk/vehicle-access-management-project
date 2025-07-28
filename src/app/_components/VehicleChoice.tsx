@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 interface VehicleChoiceProps {
   data: Vehicle[];
-  onChoice: (vehicle: Vehicle | null) => void;
+  onChoice: (vehicleId: string | null) => void;
 }
 
 export const VehicleChoice = ({ data, onChoice }: VehicleChoiceProps) => {
@@ -56,7 +56,7 @@ export const VehicleChoice = ({ data, onChoice }: VehicleChoiceProps) => {
               </p>
             )}
             <div className="flex gap-2">
-              <Button className="flex-1" onClick={() => onChoice(vehicle)}>
+              <Button className="flex-1" onClick={() => onChoice(vehicle.id)}>
                 선택
               </Button>
             </div>

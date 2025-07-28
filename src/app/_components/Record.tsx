@@ -10,6 +10,8 @@ export const Record = ({
   vehicleData: Vehicle | null;
   driverData: Driver | null;
 }) => {
+  console.log("Record > vehicleData:", vehicleData);
+  console.log("Record > driverData:", driverData);
   const [formData, setFormData] = useState({
     plate_number: vehicleData?.plate_number || "",
     vehicle_type: vehicleData?.vehicle_type || "",

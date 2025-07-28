@@ -1,76 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Header from "@/components/Header";
 import { Keypad } from "@/components/ui/keypad";
 import { VehicleChoice } from "@/app/_components/VehicleChoice";
 import { Info } from "@/app/_components/Info";
 import { Record } from "@/app/_components/Record";
-import { Vehicle } from "@/types";
-import { useVehicleSearch } from "@/hooks/useSupabase";
+import { Driver, Vehicle } from "@/types";
 
-const dummyDrivers = [
-  {
-    id: "075d3ddc-b1bd-4e19-890d-2a1ea5b0b1f3",
-    name: "김윤성",
-    phone_number: "01023896906",
-    organization: "팜스코",
-    department: null,
-    position: null,
-    photo_path: null,
-    vip_level: "none",
-    is_worker: false,
-    activity_start_date: null,
-    activity_end_date: null,
-    contact_person_name: null,
-    contact_person_phone: null,
-    status: "active",
-    created_at: "2025-06-25T08:14:55.318432+00:00",
-    updated_at: "2025-06-25T08:14:55.318432",
-    tag: "대내기관",
-    org_dept_pos: "팜스코 / nan / nan",
-  },
-  {
-    id: "0358fed2-7367-425e-a428-311e67b63e5f",
-    name: "여인구",
-    phone_number: "01023896906",
-    organization: "팜스코",
-    department: null,
-    position: null,
-    photo_path: null,
-    vip_level: "VIP2",
-    is_worker: false,
-    activity_start_date: null,
-    activity_end_date: null,
-    contact_person_name: null,
-    contact_person_phone: null,
-    status: "active",
-    created_at: "2025-06-25T08:14:55.318432+00:00",
-    updated_at: "2025-06-25T08:14:55.318432",
-    tag: "대내기관",
-    org_dept_pos: "팜스코 / nan / nan",
-  },
-  {
-    id: "075d3ddc-b1bd-4e19-890d-2a1ea5b0b1f3",
-    name: "김윤성",
-    phone_number: "01023896906",
-    organization: "팜스코",
-    department: null,
-    position: null,
-    photo_path: null,
-    vip_level: "none",
-    is_worker: false,
-    activity_start_date: null,
-    activity_end_date: null,
-    contact_person_name: null,
-    contact_person_phone: null,
-    status: "active",
-    created_at: "2025-06-25T08:14:55.318432+00:00",
-    updated_at: "2025-06-25T08:14:55.318432",
-    tag: "대내기관",
-    org_dept_pos: "팜스코 / nan / nan",
-  },
-];
+// API 호출 함수: 차량 번호 -> 차량 리스트
+async function searchVehicles(plate_number: string) {
+  const response = await fetch("/api/search-vehicles", {
+    method: "POST",
+    body: JSON.stringify({ plate_number }),
+  });
+  const data = await response.json();
+  return data || [];
+}
+
+// API 호출 함수: 차량 ID -> 운전자 리스트
+async function searchDrivers(vehicle_id: string) {
+  console.log("@searchDrivers > vehicle_id:", vehicle_id);
+  const response = await fetch("/api/search-drivers", {
+    method: "POST",
+    body: JSON.stringify({ vehicle_id }),
+  });
+  const data = await response.json();
+  return data || [];
+}
+
+// API 호출 함수: 차량 ID -> 차량 정보
+async function searchVehicleInfo(vehicle_id: string) {
+  console.log("@searchVehicleInfo > vehicle_id:", vehicle_id);
+  const response = await fetch("/api/search-vehicle-info", {
+    method: "POST",
+    body: JSON.stringify({ vehicle_id }),
+  });
+  const data = await response.json();
+  return data || [];
+}
 
 export default function Home() {
   // 1. search: 차량번호 검색
@@ -85,52 +53,102 @@ export default function Home() {
   const [mode, setMode] = useState<"search" | "choice" | "info" | "record">(
     "search"
   );
-  const [searchValue, setSearchValue] = useState<string>("");
-
-  const { data, loading, error } = useVehicleSearch(searchValue);
-
-  // 검색 결과에 따른 모드 전환
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-  };
-
-  // 검색 결과가 변경될 때마다 모드 결정
-  useEffect(() => {
-    if (!loading && searchValue.trim()) {
-      if (data && Array.isArray(data)) {
-        if (data.length === 0) {
-          // 데이터가 없으면 record 모드로
-          setMode("record");
-        } else if (data.length === 1) {
-          // 데이터가 1개면 info 모드로
-          setMode("info");
-        } else {
-          // 데이터가 여러 개면 choice 모드로
-          setMode("choice");
-        }
-      }
-    }
-  }, [data, loading, searchValue]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleInfo, setVehicleInfo] = useState<Vehicle | null>(null);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [driverInfo, setDriverInfo] = useState<Driver | null>(null);
 
   // 뒤로가기 핸들러
   const handleBack = () => {
-    setMode("search");
-    setSearchValue("");
+    console.log("뒤로 가기!");
+    if (mode === "choice") {
+      setMode("search");
+      setVehicles([]);
+      return;
+    } else if (mode === "info") {
+      if (vehicles.length > 1) {
+        setMode("choice");
+        return;
+      } else if (vehicles.length === 1) {
+        setMode("search");
+        setDriverInfo(null);
+        return;
+      }
+    } else if (mode === "record") {
+      if (!vehicleInfo && vehicles.length === 0) {
+        setMode("search");
+        return;
+      } else if (!vehicleInfo) {
+        setMode("choice");
+        return;
+      }
+      setMode("info");
+      return;
+    }
   };
 
-  const handleChoice = (value: Vehicle | null) => {
-    // [수정] 2. 차량 선택
-    console.log(value);
-    if (value) {
+  // 1. 차량 번호 검색 -> 차량 데이터
+  const handleSearch = async (plateNumber: string) => {
+    if (plateNumber.length === 0) {
+      setMode("record");
+      setVehicles([]);
+      setVehicleInfo(null);
+      setDrivers([]);
+      setDriverInfo(null);
+      return;
+    }
+    const { data } = await searchVehicles(plateNumber);
+
+    if (data.length === 1) {
+      // 차량 데이터가 1개일 때
+      const { data: driverData } = await searchDrivers(data[0].id);
+      setVehicles(data);
+      setVehicleInfo(data[0]);
+      setDrivers(driverData || []);
+      setMode("info");
+      return;
+    } else if (data.length > 1) {
+      // 차량 데이터가 여러 개일 때
+      setVehicles(data);
+      setVehicleInfo(null);
+      setDrivers([]);
+      setMode("choice");
+      return;
+    } else {
+      // 차량 데이터가 없을 때
+      setVehicles([]);
+      setVehicleInfo(null);
+      setDrivers([]);
+      setMode("record");
+      return;
+    }
+  };
+
+  // 2. 차량 선택 -> 차량 정보
+  const handleChoice = async (vehicleId: string | null) => {
+    if (vehicleId) {
+      // 선택된 차량의 정보와 운전자 정보를 가져옴
+      const { data: vehicleInfoData } = await searchVehicleInfo(vehicleId);
+      const { data: driversData } = await searchDrivers(vehicleId);
+      setVehicleInfo(vehicleInfoData[0]);
+      setDrivers(driversData || null);
       setMode("info");
     } else {
+      setVehicleInfo(null);
+      setDrivers([]);
       setMode("record");
     }
   };
 
+  // 3. 출입 기록
+  const handleRecord = async (vehicleId: string) => {
+    const { data: vehicleInfoData } = await searchVehicleInfo(vehicleId);
+    setVehicleInfo(vehicleInfoData[0]);
+    setMode("record");
+  };
+
   return (
     <>
-      {/* <UserProfile /> */}
       {mode === "search" && (
         <>
           <Header title="차량 검색" />
@@ -143,10 +161,7 @@ export default function Home() {
         <>
           <Header back={true} title="차량 선택" onBack={handleBack} />
           <main className="mx-6 pb-24">
-            <VehicleChoice
-              onChoice={handleChoice}
-              data={(data as Vehicle[]) || []}
-            />
+            <VehicleChoice onChoice={handleChoice} data={vehicles} />
           </main>
         </>
       )}
@@ -155,8 +170,10 @@ export default function Home() {
           <Header back={true} title="차량 정보" onBack={handleBack} />
           <main className="mx-6 pb-24">
             <Info
-              vehicleData={(data as Vehicle[])?.[0] || null}
-              driverData={dummyDrivers}
+              vehicleData={vehicleInfo}
+              driverData={drivers}
+              onRecord={handleRecord}
+              onSetDriverInfo={setDriverInfo}
             />
           </main>
         </>
@@ -165,7 +182,7 @@ export default function Home() {
         <>
           <Header back={true} title="출입 기록" onBack={handleBack} />
           <main className="mx-6 pb-24">
-            <Record vehicleData={null} driverData={null} />
+            <Record vehicleData={vehicleInfo} driverData={driverInfo} />
           </main>
         </>
       )}
