@@ -1,71 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Keypad } from "@/components/ui/keypad";
 import { VehicleChoice } from "@/app/_components/VehicleChoice";
 import { Info } from "@/app/_components/Info";
 import { Record } from "@/app/_components/Record";
 import { Vehicle } from "@/types";
+import { useVehicleSearch } from "@/hooks/useSupabase";
 
-const dummyVehicles = [
-  {
-    id: "06793110-f314-4c4f-afcb-705e9c0056d9",
-    plate_number: "기타",
-    vehicle_type: "골프카",
-    is_public_vehicle: false,
-    owner_department: null,
-    access_start_date: null,
-    access_end_date: null,
-    is_free_pass_enabled: true,
-    special_notes: "김재현",
-    status: "active",
-    created_at: "2025-06-25T08:13:25.263034+00:00",
-    updated_at: "2025-06-25T08:13:25.263034",
-  },
-  {
-    id: "c49b5e2b-72e0-4cac-8ac6-d654ac42426d",
-    plate_number: "기타",
-    vehicle_type: "잔디차",
-    is_public_vehicle: true,
-    owner_department: null,
-    access_start_date: null,
-    access_end_date: null,
-    is_free_pass_enabled: false,
-    special_notes: "(팜스코)",
-    status: "active",
-    created_at: "2025-06-25T08:13:25.263034+00:00",
-    updated_at: "2025-06-25T08:13:25.263034",
-  },
-  {
-    id: "023a213f-1374-47c4-907a-f54046a04006",
-    plate_number: "기타",
-    vehicle_type: "ATV",
-    is_public_vehicle: false,
-    owner_department: null,
-    access_start_date: null,
-    access_end_date: null,
-    is_free_pass_enabled: false,
-    special_notes: "구마마로 이치로",
-    status: "active",
-    created_at: "2025-06-25T08:13:25.263034+00:00",
-    updated_at: "2025-06-25T08:13:25.263034",
-  },
-  {
-    id: "6a976e69-43fc-43f2-bc2b-f5c0b534bbd7",
-    plate_number: "기타",
-    vehicle_type: "농약차",
-    is_public_vehicle: false,
-    owner_department: null,
-    access_start_date: null,
-    access_end_date: null,
-    is_free_pass_enabled: false,
-    special_notes: "(팜스코)",
-    status: "active",
-    created_at: "2025-06-25T08:13:25.263034+00:00",
-    updated_at: "2025-06-25T08:13:25.263034",
-  },
-];
 const dummyDrivers = [
   {
     id: "075d3ddc-b1bd-4e19-890d-2a1ea5b0b1f3",
@@ -142,10 +85,37 @@ export default function Home() {
   const [mode, setMode] = useState<"search" | "choice" | "info" | "record">(
     "search"
   );
+  const [searchValue, setSearchValue] = useState<string>("");
 
+  const { data, loading, error } = useVehicleSearch(searchValue);
+
+  // 검색 결과에 따른 모드 전환
   const handleSearch = (value: string) => {
-    // [수정] 1. 차량 번호 검색
-    console.log(value);
+    setSearchValue(value);
+  };
+
+  // 검색 결과가 변경될 때마다 모드 결정
+  useEffect(() => {
+    if (!loading && searchValue.trim()) {
+      if (data && Array.isArray(data)) {
+        if (data.length === 0) {
+          // 데이터가 없으면 record 모드로
+          setMode("record");
+        } else if (data.length === 1) {
+          // 데이터가 1개면 info 모드로
+          setMode("info");
+        } else {
+          // 데이터가 여러 개면 choice 모드로
+          setMode("choice");
+        }
+      }
+    }
+  }, [data, loading, searchValue]);
+
+  // 뒤로가기 핸들러
+  const handleBack = () => {
+    setMode("search");
+    setSearchValue("");
   };
 
   const handleChoice = (value: Vehicle | null) => {
@@ -171,23 +141,29 @@ export default function Home() {
       )}
       {mode === "choice" && (
         <>
-          <Header back={true} title="차량 선택" />
+          <Header back={true} title="차량 선택" onBack={handleBack} />
           <main className="mx-6 pb-24">
-            <VehicleChoice onChoice={handleChoice} data={dummyVehicles} />
+            <VehicleChoice
+              onChoice={handleChoice}
+              data={(data as Vehicle[]) || []}
+            />
           </main>
         </>
       )}
       {mode === "info" && (
         <>
-          <Header back={true} title="차량 정보" />
+          <Header back={true} title="차량 정보" onBack={handleBack} />
           <main className="mx-6 pb-24">
-            <Info vehicleData={dummyVehicles[0]} driverData={dummyDrivers} />
+            <Info
+              vehicleData={(data as Vehicle[])?.[0] || null}
+              driverData={dummyDrivers}
+            />
           </main>
         </>
       )}
       {mode === "record" && (
         <>
-          <Header back={true} title="출입 기록" />
+          <Header back={true} title="출입 기록" onBack={handleBack} />
           <main className="mx-6 pb-24">
             <Record vehicleData={null} driverData={null} />
           </main>

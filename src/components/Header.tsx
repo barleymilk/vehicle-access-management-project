@@ -20,11 +20,13 @@ import { useRouter } from "next/navigation";
 interface HeaderProps {
   back?: boolean;
   title?: string;
+  onBack?: () => void;
 }
 
 export default function Header({
   back = false,
   title = "타이틀",
+  onBack = () => {},
 }: HeaderProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -46,7 +48,7 @@ export default function Header({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => router.back()}
+                onClick={() => onBack()}
                 aria-label="뒤로가기"
               >
                 <ArrowLeft className="w-5 h-5" />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { SearchFilters } from "@/types/search";
+import { Vehicle } from "@/types";
 
 interface UseSupabaseOptions {
   onError?: (error: unknown) => void;
@@ -136,7 +137,7 @@ export function useAccessRecords(page = 1, pageSize = 20) {
 
 // 차량 번호로 검색 훅
 export function useVehicleSearch(plateNumber: string) {
-  const [data, setData] = useState<unknown[] | null>(null);
+  const [data, setData] = useState<Vehicle[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
