@@ -14,6 +14,7 @@ export function useAppState() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [driverInfo, setDriverInfo] = useState<Driver | null>(null);
   const [alertMessage, setAlertMessage] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // 새로고침 감지 및 URL 초기화
   useEffect(() => {
@@ -81,11 +82,13 @@ export function useAppState() {
     drivers,
     driverInfo,
     alertMessage,
+    isLoading,
     setVehicles,
     setVehicleInfo,
     setDrivers,
     setDriverInfo,
     setAlertMessage,
+    setIsLoading,
     updateMode,
     resetState,
   };

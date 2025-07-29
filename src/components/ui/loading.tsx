@@ -1,13 +1,11 @@
 import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface LoadingProps {
+  message?: string;
   size?: "sm" | "md" | "lg";
-  text?: string;
-  className?: string;
 }
 
-export function Loading({ size = "md", text, className }: LoadingProps) {
+export function Loading({ message = "로딩 중...", size = "md" }: LoadingProps) {
   const sizeClasses = {
     sm: "w-4 h-4",
     md: "w-6 h-6",
@@ -15,51 +13,24 @@ export function Loading({ size = "md", text, className }: LoadingProps) {
   };
 
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center gap-2",
-        className
-      )}
-    >
-      <Loader2 className={cn("animate-spin text-primary", sizeClasses[size])} />
-      {text && <p className="text-sm text-muted-foreground">{text}</p>}
+    <div className="flex flex-col items-center justify-center p-8 space-y-4">
+      <Loader2 className={`${sizeClasses[size]} animate-spin text-primary`} />
+      <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   );
 }
 
-export function LoadingSpinner({
-  size = "md",
-  className,
-}: Omit<LoadingProps, "text">) {
-  const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-6 h-6",
-    lg: "w-8 h-8",
-  };
-
-  return (
-    <Loader2
-      className={cn("animate-spin text-primary", sizeClasses[size], className)}
-    />
-  );
-}
-
+// 전체 화면 로딩 오버레이
 export function LoadingOverlay({
-  children,
-  isLoading,
-  text = "로딩 중...",
+  message = "로딩 중...",
 }: {
-  children: React.ReactNode;
-  isLoading: boolean;
-  text?: string;
+  message?: string;
 }) {
-  if (!isLoading) return <>{children}</>;
-
   return (
-    <div className="relative">
-      {children}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-        <Loading text={text} />
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+      <div className="flex flex-col items-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">{message}</p>
       </div>
     </div>
   );

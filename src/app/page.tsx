@@ -5,6 +5,7 @@ import { Keypad } from "@/components/ui/keypad";
 import { VehicleChoice } from "@/app/_components/VehicleChoice";
 import { Info } from "@/app/_components/Info";
 import { Record } from "@/app/_components/Record";
+import { LoadingOverlay } from "@/components/ui/loading";
 import { useAppLogic } from "@/hooks/useAppLogic";
 
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
     drivers,
     driverInfo,
     alertMessage,
+    isLoading,
     handleSearch,
     handleChoice,
     handleRecord,
@@ -25,6 +27,8 @@ export default function Home() {
 
   return (
     <>
+      {isLoading && <LoadingOverlay message="데이터를 불러오는 중..." />}
+
       {mode === "search" && (
         <>
           <Header title="차량 검색" onHomeClick={() => handleBackLogic()} />
