@@ -63,12 +63,12 @@ const FILTER_FIELDS = [
     placeholder: "비고",
   },
   {
-    key: "access_start_date",
+    key: "start_date",
     label: "접근 시작일",
     type: "date" as const,
   },
   {
-    key: "access_end_date",
+    key: "end_date",
     label: "접근 종료일",
     type: "date" as const,
   },
