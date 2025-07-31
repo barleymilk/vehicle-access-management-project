@@ -22,10 +22,16 @@ export function Loading({ message = "로딩 중...", size = "md" }: LoadingProps
 
 // 전체 화면 로딩 오버레이
 export function LoadingOverlay({
+  isLoading = false,
   message = "로딩 중...",
 }: {
+  isLoading?: boolean;
   message?: string;
 }) {
+  if (!isLoading) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="flex flex-col items-center space-y-4">

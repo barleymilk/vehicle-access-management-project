@@ -2,24 +2,12 @@
 
 import Header from "@/components/Header";
 import { useState } from "react";
-import { useFilteredAccessRecords } from "@/hooks/useSupabase";
+import { useFilteredVehicles } from "@/hooks/useSupabase";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
-
-export interface SearchFilters {
-  plate_number?: string;
-  vehicle_type?: string;
-  name?: string;
-  org_dept_pos?: string;
-  phone?: string;
-  passengers?: string;
-  purpose?: string;
-  notes?: string;
-  start_date?: Date;
-  end_date?: Date;
-}
+import { VehicleFilters } from "@/types/filters";
 
 // 필터 필드 정의
 const FILTER_FIELDS = [
@@ -34,43 +22,54 @@ const FILTER_FIELDS = [
     placeholder: "SUV",
   },
   {
-    key: "name",
-    label: "운전자명",
-    placeholder: "홍길동",
+    key: "is_public_vehicle",
+    label: "공용여부",
+    placeholder: "공용/비공용",
+    type: "select" as const,
+    options: [
+      { value: true, label: "공용" },
+      { value: false, label: "비공용" },
+    ],
   },
   {
-    key: "org_dept_pos",
-    label: "운전자소속",
+    key: "owner_department",
+    label: "소유 부서",
     placeholder: "부서명",
   },
   {
-    key: "phone",
-    label: "운전자번호",
-    placeholder: "숫자만 입력",
+    key: "is_free_pass_enabled",
+    label: "프리패스",
+    placeholder: "프리패스/비프리패스",
+    type: "select" as const,
+    options: [
+      { value: true, label: "프리패스" },
+      { value: false, label: "비프리패스" },
+    ],
   },
   {
-    key: "passengers",
-    label: "동승자",
-    placeholder: "동승자명",
+    key: "status",
+    label: "상태",
+    placeholder: "활성/비활성",
+    type: "select" as const,
+    options: [
+      { value: "active", label: "활성" },
+      { value: "inactive", label: "비활성" },
+      { value: "blocked", label: "차단" },
+    ],
   },
   {
-    key: "purpose",
-    label: "방문목적",
-    placeholder: "업무/방문",
+    key: "special_notes",
+    label: "비고",
+    placeholder: "비고",
   },
   {
-    key: "notes",
-    label: "특이사항",
-    placeholder: "특이사항",
-  },
-  {
-    key: "start_date",
-    label: "검색 시작일",
+    key: "access_start_date",
+    label: "접근 시작일",
     type: "date" as const,
   },
   {
-    key: "end_date",
-    label: "검색 종료일",
+    key: "access_end_date",
+    label: "접근 종료일",
     type: "date" as const,
   },
 ];
@@ -78,74 +77,67 @@ const FILTER_FIELDS = [
 // 테이블 컬럼 정의
 const TABLE_COLUMNS = [
   {
-    key: "entered_at" as const,
-    label: "입장일시",
-    defaultValue: "-",
-    render: (value: string | undefined) =>
-      value ? new Date(value).toLocaleString() : "-",
-  },
-  {
-    key: "exited_at" as const,
-    label: "퇴장일시",
-    defaultValue: "-",
-    render: (value: string | undefined) =>
-      value ? new Date(value).toLocaleString() : "-",
-  },
-  {
-    key: "purpose" as const,
-    label: "방문목적",
-    defaultValue: "-",
-  },
-  {
-    key: "raw_plate_number" as const,
+    key: "plate_number" as const,
     label: "차량번호",
     defaultValue: "-",
   },
   {
-    key: "raw_vehicle_type" as const,
+    key: "vehicle_type" as const,
     label: "차량종류",
     defaultValue: "-",
   },
   {
-    key: "raw_person_name" as const,
-    label: "운전자명",
+    key: "is_public_vehicle" as const,
+    label: "공용여부",
+    defaultValue: "-",
+    render: (value: boolean) => (value ? "공용" : "-"),
+  },
+  {
+    key: "owner_department" as const,
+    label: "공용차량 소유 부서",
     defaultValue: "-",
   },
   {
-    key: "driver_organization" as const,
-    label: "운전자소속",
+    key: "is_free_pass_enabled" as const,
+    label: "프리패스",
+    defaultValue: "-",
+    render: (value: boolean) => (value ? "프리패스" : "-"),
+  },
+  {
+    key: "special_notes" as const,
+    label: "비고",
     defaultValue: "-",
   },
   {
-    key: "raw_person_phone" as const,
-    label: "운전자번호",
+    key: "status" as const,
+    label: "상태",
     defaultValue: "-",
   },
   {
-    key: "passengers" as const,
-    label: "동승자",
+    key: "access_start_date" as const,
+    label: "접근 시작일",
     defaultValue: "-",
   },
   {
-    key: "notes" as const,
-    label: "특이사항",
+    key: "access_end_date" as const,
+    label: "접근 종료일",
     defaultValue: "-",
   },
 ];
 
-export default function Access() {
+export default function Vehicles() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<SearchFilters>({});
+  const [filters, setFilters] = useState<VehicleFilters>({});
   const pageSize = 20;
 
   // 필터가 없으면 모든 데이터를 가져옴
   const {
-    data: accessRecords,
+    data: vehicles,
     loading,
     error,
     count,
     refetch,
-  } = useFilteredAccessRecords(filters, currentPage, pageSize);
+  } = useFilteredVehicles(filters, currentPage, pageSize);
 
   const totalPages = count && count > 0 ? Math.ceil(count / pageSize) : 0;
 
@@ -158,15 +150,15 @@ export default function Access() {
   const handleSearch = (
     searchFilters: Record<string, string | Date | boolean | undefined>
   ) => {
-    setFilters(searchFilters as SearchFilters);
+    setFilters(searchFilters as VehicleFilters);
     setCurrentPage(1); // 검색 시 첫 페이지로 이동
   };
 
   if (error) {
-    console.error("Access page error:", error);
+    console.error("Vehicles page error:", error);
     return (
       <>
-        <Header title="출입 기록" />
+        <Header title="차량 관리" />
         <main className="mx-6 pb-24">
           <ErrorDisplay
             message={`데이터를 불러오는 중 오류가 발생했습니다. ${
@@ -181,11 +173,11 @@ export default function Access() {
 
   return (
     <>
-      <Header title="출입 기록" />
+      <Header title="차량 관리" />
       <main>
         <div className="relative h-[calc(100vh-var(--header-height)-50px)] overflow-auto">
           <DataTable
-            data={accessRecords}
+            data={vehicles}
             loading={loading}
             currentPage={currentPage}
             columns={TABLE_COLUMNS}
@@ -200,8 +192,8 @@ export default function Access() {
           <DataFilter
             onSearch={handleSearch}
             fields={FILTER_FIELDS}
-            title="출입 기록 검색 옵션"
-            description="출입 기록을 검색할 수 있습니다."
+            title="차량 검색 옵션"
+            description="차량 정보를 검색할 수 있습니다."
           />
         </div>
       </main>

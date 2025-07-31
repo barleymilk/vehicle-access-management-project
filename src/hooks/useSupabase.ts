@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { SearchFilters } from "@/types/search";
+import { SearchFilters, VehicleFilters } from "@/types/filters";
 import { Vehicle } from "@/types";
 
 interface UseSupabaseOptions {
@@ -92,16 +92,85 @@ export function useSupabaseQueryWithPagination<T>(
   return { data, loading, error, count, refetch };
 }
 
-// 차량 목록 조회 훅
-export function useVehicles() {
-  return useSupabaseQuery(
-    async () =>
-      await supabase
+// 차량 목록 조회 훅 (페이지네이션 지원)
+export function useVehicles(page = 1, pageSize = 20) {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  return useSupabaseQueryWithPagination(
+    async () => {
+      const { data, error, count } = await supabase
         .from("Vehicles")
-        .select("*")
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
+        .select("*", { count: "exact" })
+        .order("plate_number", { ascending: false })
+        .range(from, to);
+
+      return { data, error, count: count || 0 };
+    },
+    [page, pageSize] // 페이지나 페이지 크기가 변경될 때마다 재실행
   );
+}
+export function useFilteredVehicles(
+  filters: VehicleFilters,
+  page = 1,
+  pageSize = 20
+) {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  return useSupabaseQueryWithPagination(async () => {
+    let query = supabase
+      .from("Vehicles")
+      .select("*", { count: "exact" })
+      .order("plate_number", { ascending: false });
+
+    // 필터 적용
+    if (filters.plate_number) {
+      query = query.ilike("plate_number", `%${filters.plate_number}%`);
+    }
+
+    if (filters.vehicle_type) {
+      query = query.ilike("vehicle_type", `%${filters.vehicle_type}%`);
+    }
+
+    if (filters.is_public_vehicle !== undefined) {
+      query = query.eq("is_public_vehicle", filters.is_public_vehicle);
+    }
+
+    if (filters.owner_department) {
+      query = query.ilike("owner_department", `%${filters.owner_department}%`);
+    }
+
+    if (filters.is_free_pass_enabled !== undefined) {
+      query = query.eq("is_free_pass_enabled", filters.is_free_pass_enabled);
+    }
+
+    if (filters.special_notes) {
+      query = query.ilike("special_notes", `%${filters.special_notes}%`);
+    }
+
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    if (filters.access_start_date) {
+      const startDate = new Date(filters.access_start_date);
+      startDate.setHours(0, 0, 0, 0);
+      const utcStartDate = new Date(startDate.getTime() + 9 * 60 * 60 * 1000);
+      query = query.gte("access_start_date", utcStartDate.toISOString());
+    }
+
+    if (filters.access_end_date) {
+      const endDate = new Date(filters.access_end_date);
+      endDate.setHours(23, 59, 59, 999);
+      const utcEndDate = new Date(endDate.getTime() + 9 * 60 * 60 * 1000);
+      query = query.lte("access_end_date", utcEndDate.toISOString());
+    }
+
+    const { data, error, count } = await query.range(from, to);
+
+    return { data, error, count: count || 0 };
+  }, [filters, page, pageSize]);
 }
 
 // 운전자 목록 조회 훅
