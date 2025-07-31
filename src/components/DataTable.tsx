@@ -32,9 +32,15 @@ export function DataTable<T extends { id: string }>({
 }: DataTableProps<T>) {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
-  // 페이지가 변경되면 선택된 행 초기화
+  // 페이지가 변경되면 선택된 행 초기화 및 테이블 내부 스크롤
   useEffect(() => {
     setSelectedRowIndex(null);
+
+    // 부모 컨테이너에서 overflow-auto 클래스를 가진 요소를 찾아서 스크롤
+    const scrollContainer = document.querySelector(".overflow-auto");
+    if (scrollContainer && scrollContainer instanceof HTMLElement) {
+      scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, [currentPage]);
 
   const handleRowClick = (index: number) => {
