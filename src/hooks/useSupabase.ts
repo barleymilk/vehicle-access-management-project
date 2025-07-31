@@ -175,14 +175,94 @@ export function useFilteredVehicles(
 
 // 운전자 목록 조회 훅
 export function usePeople() {
-  return useSupabaseQuery(
-    async () =>
-      await supabase
-        .from("People")
-        .select("*")
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-  );
+  return useSupabaseQueryWithPagination(async () => {
+    const { data, error, count } = await supabase
+      .from("People")
+      .select("*", { count: "exact" })
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+
+    return { data, error, count: count || 0 };
+  }, []);
+}
+
+// 필터링된 운전자 목록 조회 훅
+export function useFilteredPeople(
+  filters: {
+    name?: string;
+    organization?: string;
+    position?: string;
+    phone_number?: string;
+    status?: string;
+    department?: string;
+    vip_level?: string;
+    is_worker?: boolean;
+    activity_start_date?: Date;
+    activity_end_date?: Date;
+  },
+  page = 1,
+  pageSize = 20
+) {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  return useSupabaseQueryWithPagination(async () => {
+    let query = supabase.from("People").select("*", { count: "exact" });
+
+    // 필터 적용
+    if (filters.name) {
+      query = query.ilike("name", `%${filters.name}%`);
+    }
+
+    if (filters.organization) {
+      query = query.ilike("organization", `%${filters.organization}%`);
+    }
+
+    if (filters.department) {
+      query = query.ilike("department", `%${filters.department}%`);
+    }
+
+    if (filters.position) {
+      query = query.ilike("position", `%${filters.position}%`);
+    }
+
+    if (filters.phone_number) {
+      const cleanPhoneNumber = filters.phone_number.replace(/-/g, "");
+      query = query.or(
+        `phone_number.ilike.%${cleanPhoneNumber}%,phone_number.ilike.%${filters.phone_number}%`
+      );
+    }
+
+    if (filters.vip_level) {
+      query = query.eq("vip_level", filters.vip_level);
+    }
+
+    if (filters.is_worker) {
+      query = query.eq("is_worker", filters.is_worker);
+    }
+
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    if (filters.activity_start_date) {
+      const startDate = new Date(filters.activity_start_date);
+      startDate.setHours(0, 0, 0, 0);
+      const utcStartDate = new Date(startDate.getTime() + 9 * 60 * 60 * 1000);
+      query = query.gte("activity_start_date", utcStartDate.toISOString());
+    }
+
+    if (filters.activity_end_date) {
+      const endDate = new Date(filters.activity_end_date);
+      endDate.setHours(23, 59, 59, 999);
+      const utcEndDate = new Date(endDate.getTime() + 9 * 60 * 60 * 1000);
+      query = query.lte("activity_end_date", utcEndDate.toISOString());
+    }
+
+    const { data, error, count } = await query.range(from, to);
+
+    return { data, error, count: count || 0 };
+  }, [filters, page, pageSize]);
 }
 
 // 출입 기록 조회 훅 (페이지네이션 지원)
