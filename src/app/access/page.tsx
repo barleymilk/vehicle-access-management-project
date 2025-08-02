@@ -7,6 +7,7 @@ import { ErrorDisplay } from "@/components/ui/error-display";
 import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
+import DetailModal from "@/components/DetailModal";
 
 export interface SearchFilters {
   plate_number?: string;
@@ -19,6 +20,23 @@ export interface SearchFilters {
   notes?: string;
   start_date?: Date;
   end_date?: Date;
+}
+
+// AccessRecord 타입 정의
+interface AccessRecord {
+  id: string;
+  entered_at?: string;
+  exited_at?: string;
+  purpose?: string;
+  raw_plate_number?: string;
+  raw_vehicle_type?: string;
+  raw_person_name?: string;
+  driver_organization?: string;
+  raw_person_phone?: string;
+  passengers?: string;
+  notes?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any; // 추가 필드를 위한 인덱스 시그니처
 }
 
 // 필터 필드 정의
@@ -133,10 +151,60 @@ const TABLE_COLUMNS = [
   },
 ];
 
+// DetailModal용 필드 정의
+const DETAIL_FIELDS = [
+  {
+    key: "entered_at",
+    label: "입장일시",
+    type: "datetime" as const,
+  },
+  {
+    key: "exited_at",
+    label: "퇴장일시",
+    type: "datetime" as const,
+  },
+  {
+    key: "purpose",
+    label: "방문목적",
+  },
+  {
+    key: "raw_plate_number",
+    label: "차량번호",
+  },
+  {
+    key: "raw_vehicle_type",
+    label: "차량종류",
+  },
+  {
+    key: "raw_person_name",
+    label: "운전자명",
+  },
+  {
+    key: "driver_organization",
+    label: "운전자소속",
+  },
+  {
+    key: "raw_person_phone",
+    label: "운전자번호",
+    type: "phone" as const,
+  },
+  {
+    key: "passengers",
+    label: "동승자",
+  },
+  {
+    key: "notes",
+    label: "특이사항",
+  },
+];
+
 export default function Access() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<SearchFilters>({});
   const pageSize = 20;
+  const [open, setOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
   // 필터가 없으면 모든 데이터를 가져옴
   const {
@@ -160,6 +228,25 @@ export default function Access() {
   ) => {
     setFilters(searchFilters as SearchFilters);
     setCurrentPage(1); // 검색 시 첫 페이지로 이동
+  };
+
+  // 행 클릭 핸들러
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleRowClick = (row: any) => {
+    setSelectedRecord(row);
+    setOpen(true);
+  };
+
+  // 모달 닫기 핸들러
+  const handleModalClose = () => {
+    setOpen(false);
+    setSelectedRecord(null);
+  };
+
+  // 수정 핸들러
+  const handleEdit = () => {
+    // TODO: 수정 기능 구현
+    console.log("수정 기능 구현 필요");
   };
 
   if (error) {
@@ -189,6 +276,7 @@ export default function Access() {
             loading={loading}
             currentPage={currentPage}
             columns={TABLE_COLUMNS}
+            onRowClick={handleRowClick}
           />
         </div>
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
@@ -204,6 +292,16 @@ export default function Access() {
             description="출입 기록을 검색할 수 있습니다."
           />
         </div>
+        <DetailModal
+          open={open}
+          onCancel={handleModalClose}
+          data={selectedRecord}
+          title="출입 기록 상세 정보"
+          description="선택된 출입 기록의 상세 정보입니다."
+          fields={DETAIL_FIELDS}
+          onEdit={handleEdit}
+          showEditButton={true}
+        />
       </main>
     </>
   );

@@ -9,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Search } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface ColumnDefinition<T> {
   key: keyof T;
@@ -22,6 +24,7 @@ interface DataTableProps<T> {
   loading: boolean;
   currentPage?: number;
   columns: ColumnDefinition<T>[];
+  onRowClick: (row: T) => void;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -29,6 +32,7 @@ export function DataTable<T extends { id: string }>({
   loading,
   currentPage,
   columns,
+  onRowClick,
 }: DataTableProps<T>) {
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
@@ -60,12 +64,13 @@ export function DataTable<T extends { id: string }>({
     <Table className="mx-6">
       <TableHeader className="sticky top-0">
         <TableRow className="bg-[var(--point)] hover:bg-muted/50">
+          <TableHead className="rounded-tl-lg"></TableHead>
           {columns.map((column, index) => (
             <TableHead
               key={column.key as string}
               className={`text-center text-white ${
-                index === 0 ? "rounded-tl-lg" : ""
-              } ${index === columns.length - 1 ? "rounded-tr-lg" : ""}`}
+                index === columns.length - 1 ? "rounded-tr-lg" : ""
+              }`}
             >
               {column.label}
             </TableHead>
@@ -82,6 +87,18 @@ export function DataTable<T extends { id: string }>({
               }`}
               onClick={() => handleRowClick(index)}
             >
+              <TableCell className="text-center">
+                <Button
+                  variant="ghost"
+                  className="w-4 h-4"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRowClick(record);
+                  }}
+                >
+                  <Search className="w-4 h-4" />
+                </Button>
+              </TableCell>
               {columns.map((column) => (
                 <TableCell key={`${record.id}-${column.key as string}`}>
                   {renderCell(record, column)}

@@ -8,6 +8,7 @@ import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
 import { VehicleFilters } from "@/types/filters";
+import DetailModal from "@/components/DetailModal";
 
 // 필터 필드 정의
 const FILTER_FIELDS = [
@@ -125,10 +126,69 @@ const TABLE_COLUMNS = [
   },
 ];
 
+// DetailModal용 필드 정의
+const DETAIL_FIELDS = [
+  {
+    key: "plate_number",
+    label: "차량번호",
+  },
+  {
+    key: "vehicle_type",
+    label: "차량종류",
+  },
+  {
+    key: "is_public_vehicle",
+    label: "공용여부",
+    render: (value: boolean) => (value ? "공용" : "비공용"),
+  },
+  {
+    key: "owner_department",
+    label: "소유 부서",
+  },
+  {
+    key: "is_free_pass_enabled",
+    label: "프리패스",
+    render: (value: boolean) => (value ? "프리패스" : "비프리패스"),
+  },
+  {
+    key: "special_notes",
+    label: "비고",
+  },
+  {
+    key: "status",
+    label: "상태",
+    render: (value: string) => {
+      switch (value) {
+        case "active":
+          return "활성";
+        case "inactive":
+          return "비활성";
+        case "blocked":
+          return "차단";
+        default:
+          return value;
+      }
+    },
+  },
+  {
+    key: "access_start_date",
+    label: "접근 시작일",
+    type: "date" as const,
+  },
+  {
+    key: "access_end_date",
+    label: "접근 종료일",
+    type: "date" as const,
+  },
+];
+
 export default function Vehicles() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<VehicleFilters>({});
   const pageSize = 20;
+  const [open, setOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
   // 필터가 없으면 모든 데이터를 가져옴
   const {
@@ -152,6 +212,25 @@ export default function Vehicles() {
   ) => {
     setFilters(searchFilters as VehicleFilters);
     setCurrentPage(1); // 검색 시 첫 페이지로 이동
+  };
+
+  // 행 클릭 핸들러
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleRowClick = (row: any) => {
+    setSelectedRecord(row);
+    setOpen(true);
+  };
+
+  // 모달 닫기 핸들러
+  const handleModalClose = () => {
+    setOpen(false);
+    setSelectedRecord(null);
+  };
+
+  // 수정 핸들러
+  const handleEdit = () => {
+    // TODO: 수정 기능 구현
+    console.log("수정 기능 구현 필요");
   };
 
   if (error) {
@@ -181,6 +260,7 @@ export default function Vehicles() {
             loading={loading}
             currentPage={currentPage}
             columns={TABLE_COLUMNS}
+            onRowClick={handleRowClick}
           />
         </div>
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
@@ -196,6 +276,16 @@ export default function Vehicles() {
             description="차량 정보를 검색할 수 있습니다."
           />
         </div>
+        <DetailModal
+          open={open}
+          onCancel={handleModalClose}
+          data={selectedRecord}
+          title="차량 상세 정보"
+          description="선택된 차량의 상세 정보입니다."
+          fields={DETAIL_FIELDS}
+          onEdit={handleEdit}
+          showEditButton={true}
+        />
       </main>
     </>
   );
