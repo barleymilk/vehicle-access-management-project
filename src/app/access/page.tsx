@@ -301,6 +301,9 @@ export default function Access() {
           fields={DETAIL_FIELDS}
           onEdit={handleEdit}
           showEditButton={true}
+          showPhoto={true}
+          basicPhotoPath="/car.webp"
+          photoShape="square"
         />
       </main>
     </>

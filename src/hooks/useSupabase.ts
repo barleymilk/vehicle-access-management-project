@@ -265,6 +265,85 @@ export function useFilteredPeople(
   }, [filters, page, pageSize]);
 }
 
+// People 테이블에 데이터 추가 함수
+export async function addPersonToSupabase(personData: {
+  name?: string;
+  organization?: string;
+  department?: string;
+  position?: string;
+  phone_number?: string;
+  vip_level?: string;
+  is_worker?: boolean;
+  status?: string;
+  activity_start_date?: Date;
+  activity_end_date?: Date;
+  contact_person_name?: string;
+  contact_person_phone?: string;
+}) {
+  try {
+    // 필수 필드 검증
+    if (!personData.name) {
+      throw new Error("이름은 필수 입력 항목입니다.");
+    }
+
+    // 기본값 설정
+    const dataToInsert: {
+      name: string;
+      organization: string;
+      department: string;
+      position: string;
+      phone_number: string;
+      vip_level: string;
+      is_worker: boolean;
+      status: string;
+      contact_person_name: string;
+      contact_person_phone: string;
+      created_at: string;
+      updated_at: string;
+      activity_start_date?: string;
+      activity_end_date?: string;
+    } = {
+      name: personData.name,
+      organization: personData.organization || "",
+      department: personData.department || "",
+      position: personData.position || "",
+      phone_number: personData.phone_number || "",
+      vip_level: personData.vip_level || "일반",
+      is_worker:
+        personData.is_worker !== undefined ? personData.is_worker : false,
+      status: personData.status || "active",
+      contact_person_name: personData.contact_person_name || "",
+      contact_person_phone: personData.contact_person_phone || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // 날짜 필드 처리
+    if (personData.activity_start_date) {
+      dataToInsert.activity_start_date =
+        personData.activity_start_date.toISOString();
+    }
+    if (personData.activity_end_date) {
+      dataToInsert.activity_end_date =
+        personData.activity_end_date.toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from("People")
+      .insert([dataToInsert])
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("People 테이블에 데이터 추가 중 오류:", error);
+    return { data: null, error };
+  }
+}
+
 // 출입 기록 조회 훅 (페이지네이션 지원)
 export function useAccessRecords(page = 1, pageSize = 20) {
   const from = (page - 1) * pageSize;
@@ -398,4 +477,15 @@ export function useFilteredAccessRecords(
 
     return { data, error, count: count || 0 };
   }, [filters, page, pageSize]);
+}
+
+export async function getPhotoPath(photoPath: string) {
+  const { data, error } = await supabase.storage
+    .from("profile")
+    .getPublicUrl(photoPath);
+  if (error) {
+    console.error("프로필 이미지 URL 가져오기 실패:", error);
+    return null;
+  }
+  return data.publicUrl;
 }

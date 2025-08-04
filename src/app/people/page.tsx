@@ -8,6 +8,9 @@ import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
 import DetailModal from "@/components/DetailModal";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import UpdateModal from "@/components/UpdateModal";
 
 export interface PeopleFilters {
   name?: string;
@@ -314,6 +317,9 @@ export default function People() {
           />
         </div>
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
+          <Button className="bg-[var(--point)] fixed left-4 rounded-full">
+            <Plus className="h-4 w-4" />
+          </Button>
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -326,6 +332,7 @@ export default function People() {
             description="운전자 정보를 검색할 수 있습니다."
           />
         </div>
+        <UpdateModal open={false} onCancel={handleModalClose} />
         <DetailModal
           open={open}
           onCancel={handleModalClose}
@@ -335,6 +342,8 @@ export default function People() {
           fields={DETAIL_FIELDS}
           onEdit={handleEdit}
           showEditButton={true}
+          showPhoto={true}
+          basicPhotoPath="/user.webp"
         />
       </main>
     </>

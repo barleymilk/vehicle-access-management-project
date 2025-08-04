@@ -16,7 +16,8 @@ interface ColumnDefinition<T> {
   key: keyof T;
   label: string;
   defaultValue: string;
-  render?: (value: T[keyof T], record: T) => React.ReactNode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render?: (value: any, record: T) => React.ReactNode;
 }
 
 interface DataTableProps<T> {
