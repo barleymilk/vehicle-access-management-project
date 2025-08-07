@@ -239,7 +239,8 @@ export default function People() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<PeopleFilters>({});
   const pageSize = 20;
-  const [open, setOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
@@ -271,12 +272,17 @@ export default function People() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleRowClick = (row: any) => {
     setSelectedRecord(row);
-    setOpen(true);
+    setDetailModalOpen(true);
   };
 
   // 모달 닫기 핸들러
   const handleModalClose = () => {
-    setOpen(false);
+    setDetailModalOpen(false);
+    setSelectedRecord(null);
+  };
+
+  const handleUpdateModalClose = () => {
+    setUpdateModalOpen(false);
     setSelectedRecord(null);
   };
 
@@ -317,7 +323,10 @@ export default function People() {
           />
         </div>
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
-          <Button className="bg-[var(--point)] fixed left-4 rounded-full">
+          <Button
+            className="bg-[var(--point)] fixed left-4 rounded-full"
+            onClick={() => setUpdateModalOpen(true)}
+          >
             <Plus className="h-4 w-4" />
           </Button>
           <TablePagination
@@ -332,9 +341,9 @@ export default function People() {
             description="운전자 정보를 검색할 수 있습니다."
           />
         </div>
-        <UpdateModal open={false} onCancel={handleModalClose} />
+        <UpdateModal open={updateModalOpen} onCancel={handleUpdateModalClose} />
         <DetailModal
-          open={open}
+          open={detailModalOpen}
           onCancel={handleModalClose}
           data={selectedRecord}
           title="운전자 상세 정보"
