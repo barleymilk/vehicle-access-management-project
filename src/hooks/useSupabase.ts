@@ -489,3 +489,79 @@ export async function getPhotoPath(photoPath: string) {
   }
   return data.publicUrl;
 }
+
+export async function uploadImageToSupabase(
+  file: File,
+  bucketName = "profile"
+) {
+  if (!file) {
+    console.error("파일이 제공되지 않았습니다.");
+    return null;
+  }
+
+  try {
+    // 파일 크기 검증 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("파일 크기가 5MB를 초과합니다.");
+    }
+
+    // 파일 타입 검증
+    if (!file.type.startsWith("image/")) {
+      throw new Error("이미지 파일만 업로드할 수 있습니다.");
+    }
+
+    const fileExtension = file.name.split(".").pop();
+    const fileName = `${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2)}.${fileExtension}`;
+    const filePath = `${fileName}`;
+
+    console.log(`이미지 업로드 시작: ${file.name} -> ${filePath}`);
+
+    let uploadResult = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadResult.error && bucketName !== "images") {
+      console.log(
+        `'${bucketName}' 버킷 업로드 실패, 'images' 버킷으로 재시도...`
+      );
+      uploadResult = await supabase.storage
+        .from("images")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+    }
+
+    if (uploadResult.error) {
+      console.error("Supabase Storage 업로드 오류:", uploadResult.error);
+      if (uploadResult.error.message?.includes("row-level security policy")) {
+        throw new Error(
+          `Storage 접근 권한이 없습니다. 다음을 확인해주세요:\n1. Supabase 대시보드에서 Storage 버킷이 존재하는지 확인\n2. Storage > Policies에서 적절한 RLS 정책이 설정되어 있는지 확인\n3. 인증된 사용자에게 업로드 권한이 부여되었는지 확인\n4. 또는 Supabase 대시보드에서 RLS를 일시적으로 비활성화`
+        );
+      }
+      throw new Error(`Storage 업로드 실패: ${uploadResult.error.message}`);
+    }
+
+    console.log("Storage 업로드 성공:", uploadResult.data);
+
+    const successfulBucket = bucketName;
+    const { data: publicUrlData } = supabase.storage
+      .from(successfulBucket)
+      .getPublicUrl(filePath);
+
+    console.log("이미지 업로드 완료:", publicUrlData.publicUrl);
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    console.error("이미지 업로드 중 오류 발생:", error);
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error(`알 수 없는 업로드 오류: ${String(error)}`);
+    }
+  }
+}

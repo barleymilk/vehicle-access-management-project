@@ -12,10 +12,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Menu, ArrowLeft, House } from "lucide-react";
+import { Menu, ArrowLeft, House, LogOut, User } from "lucide-react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   back?: boolean;
@@ -32,9 +33,19 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   const handleNavigation = (path: string) => {
     router.push(path);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/auth");
+    } catch (error) {
+      console.error("로그아웃 실패:", error);
+    }
   };
 
   return (
@@ -47,20 +58,70 @@ export default function Header({
           {/* 왼쪽: 메뉴 or 뒤로가기 아이콘 */}
           {back ? (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onBack()}
-                aria-label="뒤로가기"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onBack()}
+                  aria-label="뒤로가기"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    if (onHomeClick) {
+                      onHomeClick();
+                    } else {
+                      router.push("/");
+                    }
+                  }}
+                  aria-label="홈으로 이동"
+                >
+                  <House className="w-8 h-8" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                >
+                  <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+                  <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </div>
             </>
           ) : (
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon">
+                  <Menu className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    if (onHomeClick) {
+                      onHomeClick();
+                    } else {
+                      router.push("/");
+                    }
+                  }}
+                  aria-label="홈으로 이동"
+                >
+                  <House className="w-8 h-8" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                >
+                  <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+                  <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </div>
             </SheetTrigger>
           )}
 
@@ -69,36 +130,24 @@ export default function Header({
             {title}
           </h1>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                if (onHomeClick) {
-                  onHomeClick();
-                } else {
-                  router.push("/");
-                }
-              }}
-              aria-label="홈으로 이동"
-            >
-              <House className="w-8 h-8" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-            >
-              <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
-            <Avatar className="w-8 h-8 rounded-full">
-              <AvatarImage
-                src="https://github.com/evilrabbit.png"
-                alt="@evilrabbit"
-              />
-              <AvatarFallback>ER</AvatarFallback>
-            </Avatar>
+            {/* 사용자 정보 및 로그아웃 */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center space-x-2 text-sm">
+                <User className="h-4 w-4 text-gray-500" />
+                <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">
+                  {user?.name || user?.email || "사용자"}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center space-x-1 h-8 px-2"
+              >
+                <LogOut className="h-3 w-3" />
+                <span className="hidden sm:inline">로그아웃</span>
+              </Button>
+            </div>
           </div>
         </div>
 
