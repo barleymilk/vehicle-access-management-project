@@ -239,8 +239,13 @@ export default function People() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<PeopleFilters>({});
   const pageSize = 20;
+<<<<<<< HEAD
   const [open, setOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
+=======
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+>>>>>>> e3e354a1f195c4f7d3c5d2ae986b119aa174ad4e
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
@@ -272,12 +277,17 @@ export default function People() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleRowClick = (row: any) => {
     setSelectedRecord(row);
-    setOpen(true);
+    setDetailModalOpen(true);
   };
 
   // 모달 닫기 핸들러
   const handleModalClose = () => {
-    setOpen(false);
+    setDetailModalOpen(false);
+    setSelectedRecord(null);
+  };
+
+  const handleUpdateModalClose = () => {
+    setUpdateModalOpen(false);
     setSelectedRecord(null);
   };
 
@@ -325,7 +335,11 @@ export default function People() {
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
           <Button
             className="bg-[var(--point)] fixed left-4 rounded-full"
+<<<<<<< HEAD
             onClick={() => setUpdateOpen(true)}
+=======
+            onClick={() => setUpdateModalOpen(true)}
+>>>>>>> e3e354a1f195c4f7d3c5d2ae986b119aa174ad4e
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -341,9 +355,13 @@ export default function People() {
             description="운전자 정보를 검색할 수 있습니다."
           />
         </div>
+<<<<<<< HEAD
         <UpdateModal open={updateOpen} onCancel={handleUpdateModalClose} />
+=======
+        <UpdateModal open={updateModalOpen} onCancel={handleUpdateModalClose} />
+>>>>>>> e3e354a1f195c4f7d3c5d2ae986b119aa174ad4e
         <DetailModal
-          open={open}
+          open={detailModalOpen}
           onCancel={handleModalClose}
           data={selectedRecord}
           title="운전자 상세 정보"
