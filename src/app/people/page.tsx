@@ -240,6 +240,7 @@ export default function People() {
   const [filters, setFilters] = useState<PeopleFilters>({});
   const pageSize = 20;
   const [open, setOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
@@ -280,6 +281,11 @@ export default function People() {
     setSelectedRecord(null);
   };
 
+  // UpdateModal 닫기 핸들러
+  const handleUpdateModalClose = () => {
+    setUpdateOpen(false);
+  };
+
   // 수정 핸들러
   const handleEdit = () => {
     // TODO: 수정 기능 구현
@@ -317,7 +323,10 @@ export default function People() {
           />
         </div>
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
-          <Button className="bg-[var(--point)] fixed left-4 rounded-full">
+          <Button
+            className="bg-[var(--point)] fixed left-4 rounded-full"
+            onClick={() => setUpdateOpen(true)}
+          >
             <Plus className="h-4 w-4" />
           </Button>
           <TablePagination
@@ -332,7 +341,7 @@ export default function People() {
             description="운전자 정보를 검색할 수 있습니다."
           />
         </div>
-        <UpdateModal open={false} onCancel={handleModalClose} />
+        <UpdateModal open={updateOpen} onCancel={handleUpdateModalClose} />
         <DetailModal
           open={open}
           onCancel={handleModalClose}

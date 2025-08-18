@@ -199,6 +199,7 @@ export function useFilteredPeople(
     is_worker?: boolean;
     activity_start_date?: Date;
     activity_end_date?: Date;
+    photo_path?: string;
   },
   page = 1,
   pageSize = 20
@@ -277,6 +278,7 @@ export async function addPersonToSupabase(personData: {
   status?: string;
   activity_start_date?: Date;
   activity_end_date?: Date;
+  photo_path?: string;
   contact_person_name?: string;
   contact_person_phone?: string;
 }) {
@@ -296,6 +298,7 @@ export async function addPersonToSupabase(personData: {
       vip_level: string;
       is_worker: boolean;
       status: string;
+      photo_path?: string;
       contact_person_name: string;
       contact_person_phone: string;
       created_at: string;
@@ -312,6 +315,7 @@ export async function addPersonToSupabase(personData: {
       is_worker:
         personData.is_worker !== undefined ? personData.is_worker : false,
       status: personData.status || "active",
+      photo_path: personData.photo_path,
       contact_person_name: personData.contact_person_name || "",
       contact_person_phone: personData.contact_person_phone || "",
       created_at: new Date().toISOString(),
@@ -479,20 +483,16 @@ export function useFilteredAccessRecords(
   }, [filters, page, pageSize]);
 }
 
-export async function getPhotoPath(photoPath: string) {
-  const { data, error } = await supabase.storage
-    .from("profile")
-    .getPublicUrl(photoPath);
-  if (error) {
-    console.error("프로필 이미지 URL 가져오기 실패:", error);
-    return null;
-  }
+export async function getPhotoPath(photoPath: string, bucketName = "images") {
+  const { data } = supabase.storage.from(bucketName).getPublicUrl(photoPath);
+
   return data.publicUrl;
 }
 
 export async function uploadImageToSupabase(
   file: File,
-  bucketName = "profile"
+  bucketName = "images",
+  folderName = ""
 ) {
   if (!file) {
     console.error("파일이 제공되지 않았습니다.");
@@ -514,7 +514,7 @@ export async function uploadImageToSupabase(
     const fileName = `${Date.now()}_${Math.random()
       .toString(36)
       .substring(2)}.${fileExtension}`;
-    const filePath = `${fileName}`;
+    const filePath = `${folderName}/${fileName}`;
 
     console.log(`이미지 업로드 시작: ${file.name} -> ${filePath}`);
 
@@ -549,13 +549,9 @@ export async function uploadImageToSupabase(
 
     console.log("Storage 업로드 성공:", uploadResult.data);
 
-    const successfulBucket = bucketName;
-    const { data: publicUrlData } = supabase.storage
-      .from(successfulBucket)
-      .getPublicUrl(filePath);
-
-    console.log("이미지 업로드 완료:", publicUrlData.publicUrl);
-    return publicUrlData.publicUrl;
+    // 파일 경로만 반환 (전체 URL이 아닌)
+    console.log("이미지 업로드 완료:", filePath);
+    return filePath;
   } catch (error) {
     console.error("이미지 업로드 중 오류 발생:", error);
     if (error instanceof Error) {
