@@ -11,15 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InputField } from "@/components/ui/input-field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { addPersonToSupabase } from "@/hooks/useSupabase";
 import { uploadImageToSupabase } from "@/hooks/useSupabase";
+import { SelectField } from "@/components/ui/select-field";
 
 export interface PeopleFilters {
   name?: string;
@@ -199,115 +194,68 @@ export default function UpdateModal({
           />
 
           {/* VIP 레벨 선택 */}
-          <div className="flex gap-2 mt-3">
-            <label
-              htmlFor="vip_level"
-              className={`w-22 flex-shrink-0 text-md font-semibold ${
-                filters.vip_level ? "text-gray-400" : ""
-              }`}
-            >
-              VIP 레벨
-            </label>
-            <div className="relative w-full">
-              <Select
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    vip_level: value === "none" ? undefined : value,
-                  }))
-                }
-                defaultValue={filters.vip_level || "일반"}
-              >
-                <SelectTrigger className="w-full rounded-full pr-4 text-sm">
-                  <SelectValue placeholder="선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">선택하세요</SelectItem>
-                  <SelectItem value="VIP1">VIP1</SelectItem>
-                  <SelectItem value="VIP2">VIP2</SelectItem>
-                  <SelectItem value="VIP3">VIP3</SelectItem>
-                  <SelectItem value="직원">직원</SelectItem>
-                  <SelectItem value="대내기관">대내기관</SelectItem>
-                  <SelectItem value="외부업체">외부업체</SelectItem>
-                  <SelectItem value="단체방문">단체방문</SelectItem>
-                  <SelectItem value="일반">일반</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <SelectField
+            id="vip_level"
+            label="VIP 레벨"
+            value={filters.vip_level || "일반"}
+            options={[
+              { value: "VIP1", label: "VIP1" },
+              { value: "VIP2", label: "VIP2" },
+              { value: "VIP3", label: "VIP3" },
+              { value: "직원", label: "직원" },
+              { value: "대내기관", label: "대내기관" },
+              { value: "외부업체", label: "외부업체" },
+              { value: "단체방문", label: "단체방문" },
+              { value: "일반", label: "일반" },
+            ]}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                vip_level: value,
+              }))
+            }
+          />
 
           {/* 외부용역 여부 */}
-          <div className="flex gap-2 mt-3">
-            <label
-              htmlFor="is_worker"
-              className={`w-22 flex-shrink-0 text-md font-semibold ${
-                filters.is_worker ? "text-gray-400" : ""
-              }`}
-            >
-              외부용역
-            </label>
-            <Select
-              onValueChange={(value) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  is_worker: value === "none" ? undefined : value === "true",
-                }))
-              }
-              defaultValue={
-                filters.is_worker === undefined
-                  ? "false"
-                  : filters.is_worker.toString()
-              }
-            >
-              <SelectTrigger className="w-full rounded-full pr-4 text-sm">
-                <SelectValue placeholder="선택하세요" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">선택하세요</SelectItem>
-                <SelectItem value="false">외부용역 제외</SelectItem>
-                <SelectItem value="true">외부용역</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SelectField
+            id="is_worker"
+            label="외부용역"
+            value={filters.is_worker ? "true" : "false"}
+            options={[
+              { value: "false", label: "외부 용역 X" },
+              { value: "true", label: "외부 용역 O" },
+            ]}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                is_worker: value === "true",
+              }))
+            }
+          />
 
           {/* 상태 선택 */}
-          <div className="flex gap-2 mt-3">
-            <label
-              htmlFor="status"
-              className={`w-22 flex-shrink-0 text-md font-semibold ${
-                filters.status ? "text-gray-400" : ""
-              }`}
-            >
-              상태
-            </label>
-            <Select
-              onValueChange={(value) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  status: value === "none" ? undefined : value,
-                }))
-              }
-              defaultValue={filters.status || "active"}
-            >
-              <SelectTrigger className="w-full rounded-full pr-4 text-sm">
-                <SelectValue placeholder="선택하세요" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">선택하세요</SelectItem>
-                <SelectItem value="active">활성</SelectItem>
-                <SelectItem value="inactive">비활성</SelectItem>
-                <SelectItem value="blocked">차단</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SelectField
+            id="status"
+            label="상태"
+            value={filters.status || "active"}
+            options={[
+              { value: "active", label: "활성" },
+              { value: "inactive", label: "비활성" },
+              { value: "blocked", label: "차단" },
+            ]}
+            onChange={(value) =>
+              setFilters((prev) => ({
+                ...prev,
+                status: value,
+              }))
+            }
+          />
 
           {/* 활동 시작일 */}
-          <div className="flex gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-3">
             <label
               htmlFor="activity_start_date"
-              className={`w-22 flex-shrink-0 text-md font-semibold ${
-                filters.activity_start_date ? "text-gray-400" : ""
-              }`}
+              className={"w-22 flex-shrink-0 text-md font-semibold"}
             >
               활동 시작일
             </label>
@@ -332,12 +280,10 @@ export default function UpdateModal({
           </div>
 
           {/* 활동 종료일 */}
-          <div className="flex gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-3">
             <label
               htmlFor="activity_end_date"
-              className={`w-22 flex-shrink-0 text-md font-semibold ${
-                filters.activity_end_date ? "text-gray-400" : ""
-              }`}
+              className={"w-22 flex-shrink-0 text-md font-semibold"}
             >
               활동 종료일
             </label>
@@ -362,12 +308,10 @@ export default function UpdateModal({
           </div>
 
           {/* 사진 업로드 */}
-          <div className="flex gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-3">
             <label
               htmlFor="photo"
-              className={`w-22 flex-shrink-0 text-md font-semibold ${
-                selectedFile ? "text-gray-400" : ""
-              }`}
+              className={"w-22 flex-shrink-0 text-md font-semibold"}
             >
               사진
             </label>
