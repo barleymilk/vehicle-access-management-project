@@ -499,10 +499,14 @@ export function useFilteredAccessRecords(
   const to = from + pageSize - 1;
 
   return useSupabaseQueryWithPagination(async () => {
+    // let query = supabase
+    //   .from("AccessRecords")
+    //   .select("*", { count: "exact" })
+    //   .order("entered_at", { ascending: false, nullsFirst: false });
     let query = supabase
-      .from("AccessRecords")
+      .from("AccessRecordsKST") // 뷰에서 조회
       .select("*", { count: "exact" })
-      .order("entered_at", { ascending: false, nullsFirst: false });
+      .order("entered_at", { ascending: false, nullsFirst: false }); // 이제 한국시간 기준 정렬
 
     // 필터 적용
     if (filters.plate_number) {
@@ -540,22 +544,33 @@ export function useFilteredAccessRecords(
       query = query.ilike("notes", `%${filters.notes}%`);
     }
 
+    // if (filters.start_date) {
+    //   const startDate = new Date(filters.start_date);
+    //   // 한국 시간대(KST) 기준으로 00:00:00 설정
+    //   startDate.setHours(0, 0, 0, 0);
+    //   // UTC로 변환 (한국 시간 + 9시간)
+    //   const utcStartDate = new Date(startDate.getTime() + 9 * 60 * 60 * 1000);
+    //   query = query.gte("entered_at", utcStartDate.toISOString());
+    // }
+
+    // if (filters.end_date) {
+    //   const endDate = new Date(filters.end_date);
+    //   // 한국 시간대(KST) 기준으로 23:59:59 설정
+    //   endDate.setHours(23, 59, 59, 999);
+    //   // UTC로 변환 (한국 시간 + 9시간)
+    //   const utcEndDate = new Date(endDate.getTime() + 9 * 60 * 60 * 1000);
+    //   query = query.lte("entered_at", utcEndDate.toISOString());
+    // }
     if (filters.start_date) {
       const startDate = new Date(filters.start_date);
-      // 한국 시간대(KST) 기준으로 00:00:00 설정
       startDate.setHours(0, 0, 0, 0);
-      // UTC로 변환 (한국 시간 + 9시간)
-      const utcStartDate = new Date(startDate.getTime() + 9 * 60 * 60 * 1000);
-      query = query.gte("entered_at", utcStartDate.toISOString());
+      query = query.gte("entered_at", startDate.toISOString());
     }
 
     if (filters.end_date) {
       const endDate = new Date(filters.end_date);
-      // 한국 시간대(KST) 기준으로 23:59:59 설정
       endDate.setHours(23, 59, 59, 999);
-      // UTC로 변환 (한국 시간 + 9시간)
-      const utcEndDate = new Date(endDate.getTime() + 9 * 60 * 60 * 1000);
-      query = query.lte("entered_at", utcEndDate.toISOString());
+      query = query.lte("entered_at", endDate.toISOString());
     }
 
     const { data, error, count } = await query.range(from, to);
