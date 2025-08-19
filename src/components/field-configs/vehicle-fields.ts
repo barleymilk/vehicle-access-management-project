@@ -105,6 +105,7 @@ export const vehicleFields: FieldConfig[] = [
       { value: "inactive", label: "비활성" },
       { value: "blocked", label: "차단" },
     ],
+    defaultValue: "active",
   },
   {
     id: "photo_path",

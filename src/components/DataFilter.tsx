@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { InputField } from "@/components/ui/input-field";
 import { ChevronDownIcon, ListFilter } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { handleDatePairChange, DatePairConfig } from "@/lib/utils";
 
 interface FilterField {
@@ -37,6 +37,7 @@ interface FilterField {
   type?: "text" | "date" | "boolean" | "select";
   options?: { value: string | boolean; label: string }[];
   datePair?: DatePairConfig;
+  defaultValue?: string | boolean;
 }
 
 interface DataFilterProps {
@@ -59,7 +60,14 @@ export const DataFilter = ({
   >({});
   const [openDatePopover, setOpenDatePopover] = useState<string | null>(null);
 
+  // 컴포넌트 마운트 시 초기화 (defaultValue는 UI 표시용으로만 사용)
+  useEffect(() => {
+    // 필터 초기화 시 빈 객체로 시작 (모든 필드가 '전체' 상태)
+    setFilters({});
+  }, [fields]);
+
   const handleClear = () => {
+    // 모든 필터를 '전체' 상태로 초기화
     setFilters({});
     onSearch?.({});
   };
@@ -97,13 +105,8 @@ export const DataFilter = ({
           <div className="flex-1">
             <Select
               value={
-                filters[field.key] === true
-                  ? "true"
-                  : filters[field.key] === false
-                  ? "false"
-                  : typeof filters[field.key] === "string" &&
-                    filters[field.key] !== "전체"
-                  ? (filters[field.key] as string)
+                filters[field.key] !== undefined
+                  ? String(filters[field.key])
                   : "전체"
               }
               onValueChange={(value) => {

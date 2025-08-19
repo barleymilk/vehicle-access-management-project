@@ -352,6 +352,83 @@ export async function addPersonToSupabase(personData: {
   }
 }
 
+// Vehicles 테이블에 데이터 추가 함수
+export async function addVehicleToSupabase(vehicleData: {
+  plate_number?: string;
+  vehicle_type?: string;
+  is_public_vehicle?: boolean;
+  owner_department?: string;
+  access_start_date?: Date;
+  access_end_date?: Date;
+  is_free_pass_enabled?: boolean;
+  special_notes?: string;
+  status?: string;
+  photo_path?: string;
+}) {
+  try {
+    // 필수 필드 검증
+    if (!vehicleData.plate_number) {
+      throw new Error("차량번호는 필수 입력 항목입니다.");
+    }
+
+    // 기본값 설정
+    const dataToInsert: {
+      plate_number: string;
+      vehicle_type: string;
+      is_public_vehicle: boolean;
+      owner_department: string;
+      access_start_date?: string;
+      access_end_date?: string;
+      is_free_pass_enabled: boolean;
+      special_notes: string;
+      status: string;
+      photo_path?: string;
+      created_at: string;
+      updated_at: string;
+    } = {
+      plate_number: vehicleData.plate_number,
+      vehicle_type: vehicleData.vehicle_type || "",
+      is_public_vehicle:
+        vehicleData.is_public_vehicle !== undefined
+          ? vehicleData.is_public_vehicle
+          : false,
+      owner_department: vehicleData.owner_department || "",
+      is_free_pass_enabled:
+        vehicleData.is_free_pass_enabled !== undefined
+          ? vehicleData.is_free_pass_enabled
+          : false,
+      special_notes: vehicleData.special_notes || "",
+      status: vehicleData.status || "active",
+      photo_path: vehicleData.photo_path,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // 날짜 필드 처리
+    if (vehicleData.access_start_date) {
+      dataToInsert.access_start_date =
+        vehicleData.access_start_date.toISOString();
+    }
+    if (vehicleData.access_end_date) {
+      dataToInsert.access_end_date = vehicleData.access_end_date.toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from("Vehicles")
+      .insert([dataToInsert])
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("Vehicles 테이블에 데이터 추가 중 오류:", error);
+    return { data: null, error };
+  }
+}
+
 // 출입 기록 조회 훅 (페이지네이션 지원)
 export function useAccessRecords(page = 1, pageSize = 20) {
   const from = (page - 1) * pageSize;

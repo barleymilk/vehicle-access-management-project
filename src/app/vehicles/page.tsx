@@ -2,7 +2,7 @@
 
 import Header from "@/components/Header";
 import { useState } from "react";
-import { useFilteredVehicles, addPersonToSupabase } from "@/hooks/useSupabase";
+import { useFilteredVehicles, addVehicleToSupabase } from "@/hooks/useSupabase";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -37,6 +37,7 @@ const FILTER_FIELDS = [
       { value: true, label: "공용" },
       { value: false, label: "비공용" },
     ],
+    defaultValue: false,
   },
   {
     key: "owner_department",
@@ -52,6 +53,7 @@ const FILTER_FIELDS = [
       { value: true, label: "프리패스" },
       { value: false, label: "비프리패스" },
     ],
+    defaultValue: false,
   },
   {
     key: "status",
@@ -63,6 +65,7 @@ const FILTER_FIELDS = [
       { value: "inactive", label: "비활성" },
       { value: "blocked", label: "차단" },
     ],
+    defaultValue: "active",
   },
   {
     key: "special_notes",
@@ -256,13 +259,13 @@ export default function Vehicles() {
     setAddModalOpen(false);
   };
 
-  // 사람 데이터 추가 핸들러
+  // 차량 데이터 추가 핸들러
   const handleAddSubmit = async (data: Record<string, unknown>) => {
     try {
-      console.log("추가할 사람 데이터:", data);
+      console.log("추가할 차량 데이터:", data);
 
-      // 사람 데이터를 Supabase에 저장
-      const result = await addPersonToSupabase(data);
+      // 차량 데이터를 Supabase에 저장
+      const result = await addVehicleToSupabase(data);
 
       if (result.error) {
         const errorMessage =
@@ -274,19 +277,18 @@ export default function Vehicles() {
         throw new Error(`데이터 저장 실패: ${errorMessage}`);
       }
 
-      console.log("사람 데이터 저장 성공:", result);
+      console.log("차량 데이터 저장 성공:", result);
 
       // 성공 시 처리
       setAddModalOpen(false);
-      // TODO: people 페이지의 데이터를 새로고침하는 로직이 필요할 수 있음
-      // refetch(); // 현재는 vehicles 데이터만 새로고침됨
+      refetch(); // 차량 데이터 새로고침
     } catch (error) {
-      console.error("사람 추가 실패:", error);
+      console.error("차량 추가 실패:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
           : "알 수 없는 오류가 발생했습니다.";
-      alert(`사람 추가에 실패했습니다: ${errorMessage}`);
+      alert(`차량 추가에 실패했습니다: ${errorMessage}`);
     }
   };
 

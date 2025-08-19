@@ -133,11 +133,12 @@ function AddModal({
           throw new Error("올바른 이미지 파일이 아닙니다.");
         }
 
-        // 이미지 업로드
+        // 이미지 업로드 (title을 기반으로 폴더명 결정)
+        const folderName = title.includes("차량") ? "vehicles" : "people";
         photoUrl = await uploadImageToSupabase(
           selectedFile,
           "images",
-          "people"
+          folderName
         );
         if (!photoUrl) {
           throw new Error("이미지 업로드에 실패했습니다.");
