@@ -8,6 +8,7 @@ import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
 import DetailModal from "@/components/DetailModal";
+import { DatePairConfig } from "@/lib/utils";
 
 export interface SearchFilters {
   plate_number?: string;
@@ -85,11 +86,19 @@ const FILTER_FIELDS = [
     key: "start_date",
     label: "검색 시작일",
     type: "date" as const,
+    datePair: {
+      startDateField: "start_date",
+      endDateField: "end_date",
+    } as DatePairConfig,
   },
   {
     key: "end_date",
     label: "검색 종료일",
     type: "date" as const,
+    datePair: {
+      startDateField: "start_date",
+      endDateField: "end_date",
+    } as DatePairConfig,
   },
 ];
 
