@@ -77,7 +77,8 @@ function AddModal({
     // 필드 타입에 따른 처리
     const fieldConfig = fields.find((f) => f.id === field);
     if (fieldConfig?.type === "date") {
-      processedValue = value ? new Date(value) : undefined;
+      processedValue =
+        value && typeof value === "string" ? new Date(value) : undefined;
     }
 
     setFormData((prev) => {
@@ -148,7 +149,7 @@ function AddModal({
       }
 
       // 폼 데이터에 이미지 경로 추가
-      const finalData = {
+      const finalData: Record<string, unknown> = {
         ...formData,
         photo_path: photoUrl || formData.photo_path,
       };
@@ -277,7 +278,8 @@ function AddModal({
                     placeholder={item.placeholder}
                     type={item.type as "number" | "text"}
                     value={
-                      (formData[item.id] as string) || item.defaultValue || ""
+                      (formData[item.id] as string) ||
+                      String(item.defaultValue || "")
                     }
                     onChange={(value) => {
                       handleChange(item.id, value);
@@ -294,8 +296,7 @@ function AddModal({
                     options={item.options || []}
                     value={
                       (formData[item.id] as string) ||
-                      item.defaultValue ||
-                      "false"
+                      String(item.defaultValue || "false")
                     }
                     onChange={(value) => {
                       handleChange(item.id, value);
@@ -310,7 +311,8 @@ function AddModal({
                     label={item.label}
                     options={item.options || []}
                     value={
-                      (formData[item.id] as string) || item.defaultValue || ""
+                      (formData[item.id] as string) ||
+                      String(item.defaultValue || "")
                     }
                     onChange={(value) => {
                       handleChange(item.id, value);

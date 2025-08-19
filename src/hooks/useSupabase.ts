@@ -612,7 +612,7 @@ export async function uploadImageToSupabase(
       .substring(2)}.${fileExtension}`;
     const filePath = `${folderName}/${fileName}`;
 
-    console.log(`이미지 업로드 시작: ${file.name} -> ${filePath}`);
+    // console.log(`이미지 업로드 시작: ${file.name} -> ${filePath}`);
 
     let uploadResult = await supabase.storage
       .from(bucketName)
@@ -622,9 +622,9 @@ export async function uploadImageToSupabase(
       });
 
     if (uploadResult.error && bucketName !== "images") {
-      console.log(
-        `'${bucketName}' 버킷 업로드 실패, 'images' 버킷으로 재시도...`
-      );
+      // console.log(
+      //   `'${bucketName}' 버킷 업로드 실패, 'images' 버킷으로 재시도...`
+      // );
       uploadResult = await supabase.storage
         .from("images")
         .upload(filePath, file, {
@@ -643,10 +643,10 @@ export async function uploadImageToSupabase(
       throw new Error(`Storage 업로드 실패: ${uploadResult.error.message}`);
     }
 
-    console.log("Storage 업로드 성공:", uploadResult.data);
+    // console.log("Storage 업로드 성공:", uploadResult.data);
 
     // 파일 경로만 반환 (전체 URL이 아닌)
-    console.log("이미지 업로드 완료:", filePath);
+    // console.log("이미지 업로드 완료:", filePath);
     return filePath;
   } catch (error) {
     console.error("이미지 업로드 중 오류 발생:", error);
