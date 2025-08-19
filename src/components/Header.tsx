@@ -93,36 +93,36 @@ export default function Header({
               </div>
             </>
           ) : (
-            <SheetTrigger asChild>
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <Menu className="w-5 h-5" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    if (onHomeClick) {
-                      onHomeClick();
-                    } else {
-                      router.push("/");
-                    }
-                  }}
-                  aria-label="홈으로 이동"
-                >
-                  <House className="w-8 h-8" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-                >
-                  <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-                  <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-                  <span className="sr-only">Toggle theme</span>
-                </Button>
-              </div>
-            </SheetTrigger>
+              </SheetTrigger>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (onHomeClick) {
+                    onHomeClick();
+                  } else {
+                    router.push("/");
+                  }
+                }}
+                aria-label="홈으로 이동"
+              >
+                <House className="w-8 h-8" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              >
+                <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+                <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            </div>
           )}
 
           {/* 가운데: 페이지 제목 */}
