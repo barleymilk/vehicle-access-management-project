@@ -15,6 +15,7 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -95,10 +96,14 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
 
       <div className="space-y-2">
         <InputField
+          id="confirmPassword"
           label="비밀번호 확인"
           type="password"
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(value) => {
+            setConfirmPassword(value);
+            setCredentials((prev) => ({ ...prev, confirmPassword: value }));
+          }}
           placeholder="비밀번호를 다시 입력하세요"
           required
         />

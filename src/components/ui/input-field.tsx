@@ -8,7 +8,7 @@ interface InputFieldProps {
   label: string;
   placeholder?: string;
   value: string;
-  type?: "text" | "number" | "email" | "tel";
+  type?: "text" | "number" | "email" | "tel" | "password";
   disabled?: boolean;
   required?: boolean;
   onChange?: (value: string) => void;

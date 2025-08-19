@@ -100,14 +100,18 @@ const TABLE_COLUMNS = [
     label: "입장일시",
     defaultValue: "-",
     render: (value: string | undefined) =>
-      value ? new Date(value).toLocaleString() : "-",
+      value
+        ? new Date(value).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
+        : "-",
   },
   {
     key: "exited_at" as const,
     label: "퇴장일시",
     defaultValue: "-",
     render: (value: string | undefined) =>
-      value ? new Date(value).toLocaleString() : "-",
+      value
+        ? new Date(value).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
+        : "-",
   },
   {
     key: "purpose" as const,
@@ -246,7 +250,7 @@ export default function Access() {
   // 수정 핸들러
   const handleEdit = () => {
     // TODO: 수정 기능 구현
-    console.log("수정 기능 구현 필요");
+    // console.log("수정 기능 구현 필요");
   };
 
   if (error) {

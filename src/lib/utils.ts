@@ -86,7 +86,7 @@ export function handleDatePairChange<T extends Record<string, unknown>>(
   datePair: DatePairConfig
 ): T {
   const { startDateField, endDateField } = datePair;
-  const newData = { ...data };
+  const newData = { ...data } as Record<string, unknown>;
 
   if (field === startDateField) {
     if (value) {
@@ -127,5 +127,5 @@ export function handleDatePairChange<T extends Record<string, unknown>>(
   // 현재 필드의 값 설정
   newData[field] = value;
 
-  return newData;
+  return newData as T;
 }

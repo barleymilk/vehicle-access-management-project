@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 한국 시간으로 현재 시간 생성
+    const now = new Date();
+    const kstTime = new Date(now.getTime() + 9 * 60 * 60 * 1000); // UTC+9
+
     const { data, error } = await supabase.from("AccessRecords").insert({
       vehicle_id,
       person_id,
@@ -39,7 +43,8 @@ export async function POST(req: NextRequest) {
       purpose,
       notes,
       is_free_pass,
-      created_at: new Date().toISOString(),
+      created_at: now.toISOString(),
+      entered_at: kstTime.toISOString(),
     });
 
     if (error) {

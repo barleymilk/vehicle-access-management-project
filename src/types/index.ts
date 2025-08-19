@@ -45,7 +45,7 @@ export interface RecordData {
 export interface InfoItem {
   label: string;
   value: string;
-  tags?: TagInfo;
+  tags?: TagInfo | null;
 }
 
 export interface TagInfo {

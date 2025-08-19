@@ -248,7 +248,7 @@ export default function Vehicles() {
   // 수정 핸들러
   const handleEdit = () => {
     // TODO: 수정 기능 구현
-    console.log("수정 기능 구현 필요");
+    // console.log("수정 기능 구현 필요");
   };
 
   const handleUpdateModalClose = () => {
@@ -262,7 +262,7 @@ export default function Vehicles() {
   // 차량 데이터 추가 핸들러
   const handleAddSubmit = async (data: Record<string, unknown>) => {
     try {
-      console.log("추가할 차량 데이터:", data);
+      // console.log("추가할 차량 데이터:", data);
 
       // 차량 데이터를 Supabase에 저장
       const result = await addVehicleToSupabase(data);
@@ -277,7 +277,7 @@ export default function Vehicles() {
         throw new Error(`데이터 저장 실패: ${errorMessage}`);
       }
 
-      console.log("차량 데이터 저장 성공:", result);
+      // console.log("차량 데이터 저장 성공:", result);
 
       // 성공 시 처리
       setAddModalOpen(false);
@@ -341,7 +341,6 @@ export default function Vehicles() {
             description="차량 정보를 검색할 수 있습니다."
           />
         </div>
-        {/* <UpdateModal open={updateModalOpen} onCancel={handleUpdateModalClose} /> */}
         <AddModal
           open={addModalOpen}
           onCancel={handleAddModalClose}

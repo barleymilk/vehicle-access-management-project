@@ -149,6 +149,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const clearError = () => {
+    setState((prev) => ({ ...prev, error: null }));
+  };
+
   const value: AuthContextType = {
     user: state.user,
     session: state.session,
@@ -158,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signup,
     logout,
     resetPassword: resetPasswordHandler,
+    clearError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
