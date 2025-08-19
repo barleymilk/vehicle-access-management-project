@@ -28,6 +28,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { InputField } from "@/components/ui/input-field";
 import { ChevronDownIcon, ListFilter } from "lucide-react";
 import { useState } from "react";
+import { handleDatePairChange, DatePairConfig } from "@/lib/utils";
 
 interface FilterField {
   key: string;
@@ -35,6 +36,7 @@ interface FilterField {
   placeholder?: string;
   type?: "text" | "date" | "boolean" | "select";
   options?: { value: string | boolean; label: string }[];
+  datePair?: DatePairConfig;
 }
 
 interface DataFilterProps {
@@ -64,68 +66,21 @@ export const DataFilter = ({
 
   // 날짜 필드 간 연동 로직
   const handleDateChange = (fieldKey: string, date: Date | undefined) => {
-    const newFilters = { ...filters };
-
-    if (date) {
-      newFilters[fieldKey] = date;
-
-      // 시작일과 종료일이 짝을 이루는 경우
-      if (fieldKey === "start_date" || fieldKey === "end_date") {
-        const startDateKey = "start_date";
-        const endDateKey = "end_date";
-
-        if (fieldKey === startDateKey) {
-          // 시작일 선택 시
-          if (!newFilters[endDateKey]) {
-            // 종료일이 없으면 시작일과 같은 날짜로 설정
-            newFilters[endDateKey] = date;
-          } else if (
-            newFilters[startDateKey] &&
-            newFilters[endDateKey] &&
-            newFilters[startDateKey] instanceof Date &&
-            newFilters[endDateKey] instanceof Date &&
-            newFilters[startDateKey] > newFilters[endDateKey]
-          ) {
-            // 시작일이 종료일보다 크면 종료일을 시작일과 같은 날짜로 설정
-            newFilters[endDateKey] = date;
-          }
-        } else if (fieldKey === endDateKey) {
-          // 종료일 선택 시
-          if (!newFilters[startDateKey]) {
-            // 시작일이 없으면 종료일과 같은 날짜로 설정
-            newFilters[startDateKey] = date;
-          } else if (
-            newFilters[startDateKey] &&
-            newFilters[endDateKey] &&
-            newFilters[startDateKey] instanceof Date &&
-            newFilters[endDateKey] instanceof Date &&
-            newFilters[endDateKey] < newFilters[startDateKey]
-          ) {
-            // 종료일이 시작일보다 작으면 시작일을 종료일과 같은 날짜로 설정
-            newFilters[startDateKey] = date;
-          }
-        }
-      }
+    // 날짜 쌍이 있는 필드에 대해 연동 로직 적용
+    const fieldConfig = fields.find((f) => f.key === fieldKey);
+    if (fieldConfig?.type === "date" && fieldConfig.datePair) {
+      const newFilters = handleDatePairChange(
+        fieldKey,
+        date,
+        filters,
+        fieldConfig.datePair
+      );
+      setFilters(newFilters);
     } else {
-      // 날짜 해제 시
-      newFilters[fieldKey] = undefined;
-
-      // 시작일과 종료일이 짝을 이루는 경우
-      if (fieldKey === "start_date" || fieldKey === "end_date") {
-        const startDateKey = "start_date";
-        const endDateKey = "end_date";
-
-        if (fieldKey === startDateKey) {
-          // 시작일 해제 시 종료일도 해제
-          newFilters[endDateKey] = undefined;
-        } else if (fieldKey === endDateKey) {
-          // 종료일 해제 시 시작일도 해제
-          newFilters[startDateKey] = undefined;
-        }
-      }
+      // 날짜 쌍이 아닌 경우 단순히 값만 설정
+      setFilters((prev) => ({ ...prev, [fieldKey]: date }));
     }
 
-    setFilters(newFilters);
     setOpenDatePopover(null); // 팝업 닫기
   };
 

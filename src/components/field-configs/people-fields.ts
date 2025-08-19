@@ -1,4 +1,5 @@
 import { FieldConfig } from "@/components/AddModal";
+import { DatePairConfig } from "@/lib/utils";
 
 export const peopleFields: FieldConfig[] = [
   {
@@ -123,6 +124,10 @@ export const peopleFields: FieldConfig[] = [
     isInput: false,
     isSelect: false,
     required: false,
+    datePair: {
+      startDateField: "activity_start_date",
+      endDateField: "activity_end_date",
+    } as DatePairConfig,
   },
   {
     id: "activity_end_date",
@@ -132,6 +137,10 @@ export const peopleFields: FieldConfig[] = [
     isInput: false,
     isSelect: false,
     required: false,
+    datePair: {
+      startDateField: "activity_start_date",
+      endDateField: "activity_end_date",
+    } as DatePairConfig,
   },
   {
     id: "photo_path",

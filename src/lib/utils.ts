@@ -64,3 +64,68 @@ export function validatePlateNumber(plateNumber: string): {
 
   return { isValid: true, message: "" };
 }
+
+// 날짜 쌍 연동 로직을 처리하는 공통 함수들
+export interface DatePairConfig {
+  startDateField: string;
+  endDateField: string;
+}
+
+/**
+ * 날짜 쌍 연동 로직을 처리하는 함수
+ * @param field - 변경된 필드명
+ * @param value - 새로운 값 (Date 또는 undefined)
+ * @param data - 현재 데이터 객체
+ * @param datePair - 날짜 쌍 설정
+ * @returns 연동된 새로운 데이터 객체
+ */
+export function handleDatePairChange<T extends Record<string, unknown>>(
+  field: string,
+  value: Date | undefined,
+  data: T,
+  datePair: DatePairConfig
+): T {
+  const { startDateField, endDateField } = datePair;
+  const newData = { ...data };
+
+  if (field === startDateField) {
+    if (value) {
+      // 시작일 선택 시
+      if (!newData[endDateField]) {
+        // 종료일이 없으면 시작일과 같은 날짜로 설정
+        newData[endDateField] = value;
+      } else if (
+        newData[endDateField] instanceof Date &&
+        value > newData[endDateField]
+      ) {
+        // 시작일이 종료일보다 크면 종료일을 시작일과 같은 날짜로 설정
+        newData[endDateField] = value;
+      }
+    } else {
+      // 시작일 해제 시 종료일도 해제
+      newData[endDateField] = undefined;
+    }
+  } else if (field === endDateField) {
+    if (value) {
+      // 종료일 선택 시
+      if (!newData[startDateField]) {
+        // 시작일이 없으면 종료일과 같은 날짜로 설정
+        newData[startDateField] = value;
+      } else if (
+        newData[startDateField] instanceof Date &&
+        value < newData[startDateField]
+      ) {
+        // 종료일이 시작일보다 작으면 시작일을 종료일과 같은 날짜로 설정
+        newData[startDateField] = value;
+      }
+    } else {
+      // 종료일 해제 시 시작일도 해제
+      newData[startDateField] = undefined;
+    }
+  }
+
+  // 현재 필드의 값 설정
+  newData[field] = value;
+
+  return newData;
+}

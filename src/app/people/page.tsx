@@ -8,6 +8,7 @@ import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
 import DetailModal from "@/components/DetailModal";
+import { DatePairConfig } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AddModal from "@/components/AddModal";
@@ -108,14 +109,22 @@ const FILTER_FIELDS = [
     ],
   },
   {
-    key: "start_date",
+    key: "activity_start_date",
     label: "활동 시작일",
     type: "date" as const,
+    datePair: {
+      startDateField: "activity_start_date",
+      endDateField: "activity_end_date",
+    } as DatePairConfig,
   },
   {
-    key: "end_date",
+    key: "activity_end_date",
     label: "활동 종료일",
     type: "date" as const,
+    datePair: {
+      startDateField: "activity_start_date",
+      endDateField: "activity_end_date",
+    } as DatePairConfig,
   },
 ];
 

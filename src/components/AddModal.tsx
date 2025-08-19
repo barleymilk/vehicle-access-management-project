@@ -17,6 +17,7 @@ import { InputField } from "@/components/ui/input-field";
 import { SelectField } from "@/components/ui/select-field";
 import { useState } from "react";
 import { uploadImageToSupabase } from "@/hooks/useSupabase";
+import { handleDatePairChange, DatePairConfig } from "@/lib/utils";
 
 // 필드 타입 정의
 export interface FieldConfig {
@@ -30,6 +31,7 @@ export interface FieldConfig {
   options?: Array<{ value: string; label: string }>;
   defaultValue?: string | boolean;
   autoGenerate?: (formData: Record<string, unknown>) => unknown;
+  datePair?: DatePairConfig;
 }
 
 // AddModal Props를 범용적으로 수정
@@ -81,49 +83,23 @@ function AddModal({
     setFormData((prev) => {
       const newFormData = { ...prev, [field]: processedValue };
 
-      // 날짜 필드 간 연동 로직 (DataFilter와 동일)
-      if (field === "activity_start_date" || field === "activity_end_date") {
-        const startDateKey = "activity_start_date";
-        const endDateKey = "activity_end_date";
-
-        if (field === startDateKey && processedValue instanceof Date) {
-          // 시작일 선택 시
-          if (!newFormData[endDateKey]) {
-            // 종료일이 없으면 시작일과 같은 날짜로 설정
-            newFormData[endDateKey] = processedValue;
-          } else if (
-            newFormData[startDateKey] &&
-            newFormData[endDateKey] &&
-            newFormData[startDateKey] instanceof Date &&
-            newFormData[endDateKey] instanceof Date &&
-            newFormData[startDateKey] > newFormData[endDateKey]
-          ) {
-            // 시작일이 종료일보다 크면 종료일을 시작일과 같은 날짜로 설정
-            newFormData[endDateKey] = processedValue;
-          }
-        } else if (field === endDateKey && processedValue instanceof Date) {
-          // 종료일 선택 시
-          if (!newFormData[startDateKey]) {
-            // 시작일이 없으면 종료일과 같은 날짜로 설정
-            newFormData[startDateKey] = processedValue;
-          } else if (
-            newFormData[startDateKey] &&
-            newFormData[endDateKey] &&
-            newFormData[startDateKey] instanceof Date &&
-            newFormData[endDateKey] instanceof Date &&
-            newFormData[endDateKey] < newFormData[startDateKey]
-          ) {
-            // 종료일이 시작일보다 작으면 시작일을 종료일과 같은 날짜로 설정
-            newFormData[startDateKey] = processedValue;
-          }
-        }
+      // 날짜 필드 간 연동 로직 (공통 함수 사용)
+      const fieldConfig = fields.find((f) => f.id === field);
+      if (fieldConfig?.type === "date" && fieldConfig.datePair) {
+        const newFormDataWithDatePair = handleDatePairChange(
+          field,
+          processedValue instanceof Date ? processedValue : undefined,
+          newFormData,
+          fieldConfig.datePair
+        );
+        return newFormDataWithDatePair;
       }
 
       return newFormData;
     });
 
     // 날짜 필드 선택 시 팝업 자동 닫기
-    if (field === "activity_start_date" || field === "activity_end_date") {
+    if (fieldConfig?.type === "date") {
       setOpenDatePopover(null);
     }
   };

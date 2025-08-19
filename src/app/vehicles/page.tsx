@@ -2,13 +2,19 @@
 
 import Header from "@/components/Header";
 import { useState } from "react";
-import { useFilteredVehicles } from "@/hooks/useSupabase";
+import { useFilteredVehicles, addPersonToSupabase } from "@/hooks/useSupabase";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
 import { VehicleFilters } from "@/types/filters";
+import { DatePairConfig } from "@/lib/utils";
 import DetailModal from "@/components/DetailModal";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import AddModal from "@/components/AddModal";
+import { vehicleFields } from "@/components/field-configs/vehicle-fields";
+// import { peopleFields } from "@/components/field-configs/people-fields";
 
 // 필터 필드 정의
 const FILTER_FIELDS = [
@@ -64,14 +70,22 @@ const FILTER_FIELDS = [
     placeholder: "비고",
   },
   {
-    key: "start_date",
+    key: "access_start_date",
     label: "접근 시작일",
     type: "date" as const,
+    datePair: {
+      startDateField: "access_start_date",
+      endDateField: "access_end_date",
+    } as DatePairConfig,
   },
   {
-    key: "end_date",
+    key: "access_end_date",
     label: "접근 종료일",
     type: "date" as const,
+    datePair: {
+      startDateField: "access_start_date",
+      endDateField: "access_end_date",
+    } as DatePairConfig,
   },
 ];
 
@@ -187,9 +201,10 @@ export default function Vehicles() {
   const [filters, setFilters] = useState<VehicleFilters>({});
   const pageSize = 20;
   const [open, setOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
-
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
   // 필터가 없으면 모든 데이터를 가져옴
   const {
     data: vehicles,
@@ -233,6 +248,48 @@ export default function Vehicles() {
     console.log("수정 기능 구현 필요");
   };
 
+  const handleUpdateModalClose = () => {
+    setUpdateModalOpen(false);
+  };
+
+  const handleAddModalClose = () => {
+    setAddModalOpen(false);
+  };
+
+  // 사람 데이터 추가 핸들러
+  const handleAddSubmit = async (data: Record<string, unknown>) => {
+    try {
+      console.log("추가할 사람 데이터:", data);
+
+      // 사람 데이터를 Supabase에 저장
+      const result = await addPersonToSupabase(data);
+
+      if (result.error) {
+        const errorMessage =
+          result.error &&
+          typeof result.error === "object" &&
+          "message" in result.error
+            ? String((result.error as Record<string, unknown>).message)
+            : "알 수 없는 오류";
+        throw new Error(`데이터 저장 실패: ${errorMessage}`);
+      }
+
+      console.log("사람 데이터 저장 성공:", result);
+
+      // 성공 시 처리
+      setAddModalOpen(false);
+      // TODO: people 페이지의 데이터를 새로고침하는 로직이 필요할 수 있음
+      // refetch(); // 현재는 vehicles 데이터만 새로고침됨
+    } catch (error) {
+      console.error("사람 추가 실패:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "알 수 없는 오류가 발생했습니다.";
+      alert(`사람 추가에 실패했습니다: ${errorMessage}`);
+    }
+  };
+
   if (error) {
     console.error("Vehicles page error:", error);
     return (
@@ -264,6 +321,12 @@ export default function Vehicles() {
           />
         </div>
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
+          <Button
+            className="bg-[var(--point)] fixed left-4 rounded-full"
+            onClick={() => setAddModalOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -276,6 +339,15 @@ export default function Vehicles() {
             description="차량 정보를 검색할 수 있습니다."
           />
         </div>
+        {/* <UpdateModal open={updateModalOpen} onCancel={handleUpdateModalClose} /> */}
+        <AddModal
+          open={addModalOpen}
+          onCancel={handleAddModalClose}
+          fields={vehicleFields}
+          title="차량 추가"
+          description="차량 정보를 추가할 수 있습니다."
+          onSubmit={handleAddSubmit}
+        />
         <DetailModal
           open={open}
           onCancel={handleModalClose}
