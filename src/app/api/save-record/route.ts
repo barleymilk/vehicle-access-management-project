@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       purpose,
       notes,
       is_free_pass,
-      created_at: new Date().toISOString(),
+      entered_at: new Date().toISOString(), // 저장 버튼을 누른 시점의 시간
     });
 
     if (error) {
