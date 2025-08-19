@@ -10,7 +10,9 @@ import { DataFilter } from "@/components/DataFilter";
 import DetailModal from "@/components/DetailModal";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import UpdateModal from "@/components/UpdateModal";
+import AddModal from "@/components/AddModal";
+import { peopleFields } from "@/components/field-configs/people-fields";
+import { addPersonToSupabase } from "@/hooks/useSupabase";
 
 export interface PeopleFilters {
   name?: string;
@@ -23,6 +25,7 @@ export interface PeopleFilters {
   status?: string;
   activity_start_date?: Date;
   activity_end_date?: Date;
+  org_dept_pos?: string;
 }
 
 // People 데이터 타입 정의
@@ -240,7 +243,7 @@ export default function People() {
   const [filters, setFilters] = useState<PeopleFilters>({});
   const pageSize = 20;
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
@@ -281,8 +284,8 @@ export default function People() {
     setSelectedRecord(null);
   };
 
-  const handleUpdateModalClose = () => {
-    setUpdateModalOpen(false);
+  const handleAddModalClose = () => {
+    setAddModalOpen(false);
     setSelectedRecord(null);
   };
 
@@ -296,7 +299,7 @@ export default function People() {
     console.error("People page error:", error);
     return (
       <>
-        <Header title="운전자 관리" />
+        <Header title="인물 관리" />
         <main className="mx-6 pb-24">
           <ErrorDisplay
             message={`데이터를 불러오는 중 오류가 발생했습니다. ${
@@ -311,7 +314,7 @@ export default function People() {
 
   return (
     <>
-      <Header title="운전자 관리" />
+      <Header title="인물 관리" />
       <main>
         <div className="relative h-[calc(100vh-var(--header-height)-50px)] overflow-auto">
           <DataTable<People>
@@ -325,7 +328,7 @@ export default function People() {
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
           <Button
             className="bg-[var(--point)] fixed left-4 rounded-full"
-            onClick={() => setUpdateModalOpen(true)}
+            onClick={() => setAddModalOpen(true)}
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -337,17 +340,34 @@ export default function People() {
           <DataFilter
             onSearch={handleSearch}
             fields={FILTER_FIELDS}
-            title="운전자 검색 옵션"
-            description="운전자 정보를 검색할 수 있습니다."
+            title="인물 검색 옵션"
+            description="인물 정보를 검색할 수 있습니다."
           />
         </div>
-        <UpdateModal open={updateModalOpen} onCancel={handleUpdateModalClose} />
+        <AddModal
+          open={addModalOpen}
+          onCancel={handleAddModalClose}
+          title="인물 추가"
+          description="새로운 인물 정보를 입력하세요"
+          fields={peopleFields}
+          onSubmit={async (data) => {
+            try {
+              await addPersonToSupabase(data);
+              // 성공 시 모달 닫기 및 데이터 새로고침
+              handleAddModalClose();
+              refetch();
+            } catch (error) {
+              console.error("인물 추가 실패:", error);
+              alert("인물 추가에 실패했습니다.");
+            }
+          }}
+        />
         <DetailModal
           open={detailModalOpen}
           onCancel={handleModalClose}
           data={selectedRecord}
-          title="운전자 상세 정보"
-          description="선택된 운전자의 상세 정보입니다."
+          title="인물 상세 정보"
+          description="선택된 인물의 상세 정보입니다."
           fields={DETAIL_FIELDS}
           onEdit={handleEdit}
           showEditButton={true}

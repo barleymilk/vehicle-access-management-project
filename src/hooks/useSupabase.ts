@@ -200,6 +200,7 @@ export function useFilteredPeople(
     activity_start_date?: Date;
     activity_end_date?: Date;
     photo_path?: string;
+    org_dept_pos?: string;
   },
   page = 1,
   pageSize = 20
@@ -279,6 +280,7 @@ export async function addPersonToSupabase(personData: {
   activity_start_date?: Date;
   activity_end_date?: Date;
   photo_path?: string;
+  org_dept_pos?: string;
   contact_person_name?: string;
   contact_person_phone?: string;
 }) {
@@ -299,6 +301,7 @@ export async function addPersonToSupabase(personData: {
       is_worker: boolean;
       status: string;
       photo_path?: string;
+      org_dept_pos?: string;
       contact_person_name: string;
       contact_person_phone: string;
       created_at: string;
@@ -316,6 +319,7 @@ export async function addPersonToSupabase(personData: {
         personData.is_worker !== undefined ? personData.is_worker : false,
       status: personData.status || "active",
       photo_path: personData.photo_path,
+      org_dept_pos: personData.org_dept_pos,
       contact_person_name: personData.contact_person_name || "",
       contact_person_phone: personData.contact_person_phone || "",
       created_at: new Date().toISOString(),
