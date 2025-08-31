@@ -301,7 +301,7 @@ export default function People() {
   // 수정 핸들러
   const handleEdit = () => {
     // TODO: 수정 기능 구현
-    console.log("수정 기능 구현 필요");
+    // console.log("수정 기능 구현 필요");
   };
 
   if (error) {

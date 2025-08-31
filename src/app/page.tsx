@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Header from "@/components/Header";
 import { Keypad } from "@/components/ui/keypad";
@@ -9,7 +10,7 @@ import { Record } from "@/app/_components/Record";
 import { LoadingOverlay } from "@/components/ui/loading";
 import { useAppLogic } from "@/hooks/useAppLogic";
 
-export default function HomePage() {
+function HomePageContent() {
   const {
     mode,
     vehicles,
@@ -93,5 +94,13 @@ export default function HomePage() {
         )}
       </>
     </ProtectedRoute>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <HomePageContent />
+    </Suspense>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import {
   searchVehicles,
   searchDrivers,
@@ -27,23 +27,8 @@ export function useAppLogic() {
     resetState,
   } = useAppState();
 
-  // 브라우저 뒤로가기 이벤트 감지
-  useEffect(() => {
-    const handlePopState = () => {
-      if (mode !== "search") {
-        handleBackLogic();
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [mode, vehicles, vehicleInfo]);
-
   // 뒤로가기 로직 (공통 함수)
-  const handleBackLogic = () => {
+  const handleBackLogic = useCallback(() => {
     if (mode === "choice") {
       updateMode("search");
       setVehicles([]);
@@ -68,7 +53,24 @@ export function useAppLogic() {
       updateMode("info");
       return;
     }
-  };
+  }, [mode, vehicles, vehicleInfo, updateMode, setVehicles, setDriverInfo]);
+
+  // 브라우저 뒤로가기 이벤트 감지
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handlePopState = () => {
+      if (mode !== "search") {
+        handleBackLogic();
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [handleBackLogic]);
 
   // 1. 차량 번호 검색 -> 차량 데이터
   const handleSearch = async (plateNumber: string) => {

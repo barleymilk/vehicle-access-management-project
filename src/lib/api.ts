@@ -10,7 +10,7 @@ export async function searchVehicles(plate_number: string) {
 
 // API 호출 함수: 차량 ID -> 운전자 리스트
 export async function searchDrivers(vehicle_id: string) {
-  console.log("@searchDrivers > vehicle_id:", vehicle_id);
+  // console.log("@searchDrivers > vehicle_id:", vehicle_id);
   const response = await fetch("/api/search-drivers", {
     method: "POST",
     body: JSON.stringify({ vehicle_id }),
@@ -21,7 +21,7 @@ export async function searchDrivers(vehicle_id: string) {
 
 // API 호출 함수: 차량 ID -> 차량 정보
 export async function searchVehicleInfo(vehicle_id: string) {
-  console.log("@searchVehicleInfo > vehicle_id:", vehicle_id);
+  // console.log("@searchVehicleInfo > vehicle_id:", vehicle_id);
   const response = await fetch("/api/search-vehicle-info", {
     method: "POST",
     body: JSON.stringify({ vehicle_id }),

@@ -92,9 +92,13 @@ export default function DetailModal({
 
     switch (field.type) {
       case "date":
-        return new Date(value).toLocaleDateString();
+        return new Date(value).toLocaleDateString("ko-KR", {
+          timeZone: "Asia/Seoul",
+        });
       case "datetime":
-        return new Date(value).toLocaleString();
+        return new Date(value).toLocaleString("ko-KR", {
+          timeZone: "Asia/Seoul",
+        });
       case "phone":
         // 전화번호 포맷팅 (010-1234-5678)
         const phone = String(value).replace(/[^0-9]/g, "");
