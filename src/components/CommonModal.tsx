@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -134,6 +134,11 @@ interface CommonModalProps {
   state: "READ" | "ADD" | "UPDATE";
   open: boolean;
   onCancel: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any; // 실제 데이터
+  title?: string; // 모달 제목
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onSubmit?: (data: any) => void; // 저장/추가/수정 시 호출
 }
 
 function Photo({
@@ -220,14 +225,29 @@ function Photo({
 }
 
 export default function CommonModal({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  state: _state,
+  state,
   open,
   onCancel,
+  data,
+  title = "데이터",
+  onSubmit,
 }: CommonModalProps) {
-  const [mode] = useState<"READ" | "ADD" | "UPDATE">("UPDATE"); // mode: READ, ADD, UPDATE
+  const [mode, setMode] = useState<"READ" | "ADD" | "UPDATE">(state); // mode: READ, ADD, UPDATE
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+
+  // state prop이 변경될 때 mode 업데이트
+  useEffect(() => {
+    setMode(state);
+  }, [state]);
+
+  // 모드가 변경될 때 스크롤을 최상단으로 이동
+  useEffect(() => {
+    if (dialogContentRef.current) {
+      dialogContentRef.current.scrollTop = 0;
+    }
+  }, [mode]);
   // 초기 데이터를 별도로 저장 (초기화 시 사용)
-  const [initialFormData] = useState(() => {
+  const [initialFormData, setInitialFormData] = useState(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const initialData: Record<string, any> = {};
 
@@ -238,9 +258,10 @@ export default function CommonModal({
         initialData[dummyVehicleData.photo.attribute] =
           dummyVehicleData.photo.defaultValue;
       } else {
-        // READ/UPDATE 모드: value 또는 defaultValue 사용
+        // READ/UPDATE 모드: 실제 데이터 또는 defaultValue 사용
         initialData[dummyVehicleData.photo.attribute] =
-          dummyVehicleData.photo.value || dummyVehicleData.photo.defaultValue;
+          data?.[dummyVehicleData.photo.attribute] ||
+          dummyVehicleData.photo.defaultValue;
       }
     }
 
@@ -250,8 +271,9 @@ export default function CommonModal({
         // ADD 모드: defaultValue만 사용
         initialData[item.attribute] = item.defaultValue;
       } else {
-        // READ/UPDATE 모드: value 또는 defaultValue 사용
-        initialData[item.attribute] = item.value || item.defaultValue;
+        // READ/UPDATE 모드: 실제 데이터 또는 defaultValue 사용
+        initialData[item.attribute] =
+          data?.[item.attribute] || item.defaultValue;
       }
     });
 
@@ -259,6 +281,37 @@ export default function CommonModal({
   });
   const [formData, setFormData] = useState(initialFormData);
   const [openDatePopover, setOpenDatePopover] = useState<string | null>(null);
+
+  // 데이터가 변경될 때 formData와 initialFormData 업데이트
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newFormData: Record<string, any> = {};
+
+    // 사진 데이터 추가
+    if (dummyVehicleData.photo) {
+      if (mode === "ADD") {
+        newFormData[dummyVehicleData.photo.attribute] =
+          dummyVehicleData.photo.defaultValue;
+      } else {
+        newFormData[dummyVehicleData.photo.attribute] =
+          data?.[dummyVehicleData.photo.attribute] ||
+          dummyVehicleData.photo.defaultValue;
+      }
+    }
+
+    // 일반 필드 데이터 추가
+    dummyVehicleData.fields.forEach((item) => {
+      if (mode === "ADD") {
+        newFormData[item.attribute] = item.defaultValue;
+      } else {
+        newFormData[item.attribute] =
+          data?.[item.attribute] || item.defaultValue;
+      }
+    });
+
+    setFormData(newFormData);
+    setInitialFormData(newFormData); // initialFormData도 함께 업데이트
+  }, [data, mode]);
 
   const handleDateChange = (field: string, value: unknown) => {
     let processedValue = value;
@@ -295,12 +348,24 @@ export default function CommonModal({
     }
   };
 
+  // 모달 닫기 핸들러 (UPDATE 모드에서는 READ 모드로 복귀)
+  const handleCancel = () => {
+    if (mode === "UPDATE") {
+      setMode("READ");
+    } else {
+      onCancel();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onCancel}>
-      <DialogContent className="max-h-[80vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleCancel}>
+      <DialogContent
+        ref={dialogContentRef}
+        className="max-h-[80vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>
-            {dummyVehicleData.title}{" "}
+            {title}{" "}
             {mode === "READ" ? "정보" : mode === "ADD" ? "추가" : "수정"}
           </DialogTitle>
         </DialogHeader>
@@ -459,8 +524,15 @@ export default function CommonModal({
           {mode === "READ" ? (
             // READ 모드: 수정 버튼과 닫기 버튼만
             <>
-              <Button className="bg-[var(--point)]">수정</Button>
-              <Button onClick={onCancel} variant="outline">
+              <Button
+                className="bg-[var(--point)]"
+                onClick={() => {
+                  setMode("UPDATE");
+                }}
+              >
+                수정
+              </Button>
+              <Button onClick={handleCancel} variant="outline">
                 닫기
               </Button>
             </>
@@ -488,13 +560,22 @@ export default function CommonModal({
               >
                 초기화
               </Button>
-              <Button onClick={onCancel} variant="outline">
+              <Button onClick={handleCancel} variant="outline">
                 닫기
               </Button>
-              <Button className="bg-[var(--point)]">추가</Button>
+              <Button
+                className="bg-[var(--point)]"
+                onClick={() => {
+                  if (onSubmit) {
+                    onSubmit(formData);
+                  }
+                }}
+              >
+                추가
+              </Button>
             </>
           ) : (
-            // UPDATE 모드: 초기화, 닫기, 저장 버튼
+            // UPDATE 모드: 초기화, 수정 취소, 저장 버튼
             <>
               <Button
                 onClick={() => {
@@ -504,10 +585,24 @@ export default function CommonModal({
               >
                 초기화
               </Button>
-              <Button onClick={onCancel} variant="outline">
-                닫기
+              <Button
+                onClick={() => {
+                  setMode("READ");
+                }}
+                variant="outline"
+              >
+                수정 취소
               </Button>
-              <Button className="bg-[var(--point)]">저장</Button>
+              <Button
+                className="bg-[var(--point)]"
+                onClick={() => {
+                  if (onSubmit) {
+                    onSubmit(formData);
+                  }
+                }}
+              >
+                저장
+              </Button>
             </>
           )}
         </DialogFooter>

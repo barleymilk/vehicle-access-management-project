@@ -9,11 +9,9 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
 import { VehicleFilters } from "@/types/filters";
 import { DatePairConfig } from "@/lib/utils";
-import DetailModal from "@/components/DetailModal";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AddModal from "@/components/AddModal";
-import { vehicleFields } from "@/components/field-configs/vehicle-fields";
+import CommonModal from "@/components/CommonModal";
 // import { peopleFields } from "@/components/field-configs/people-fields";
 
 // 필터 필드 정의
@@ -143,71 +141,115 @@ const TABLE_COLUMNS = [
   },
 ];
 
-// DetailModal용 필드 정의
-const DETAIL_FIELDS = [
-  {
-    key: "plate_number",
-    label: "차량번호",
+// CommonModal용 데이터 구조 정의
+const VEHICLE_MODAL_DATA = {
+  title: "차량",
+  photo: {
+    attribute: "photo_path",
+    label: "사진",
+    placeholder: "사진",
+    type: "photo",
+    value: "/car.webp",
+    defaultValue: "/car.webp",
   },
-  {
-    key: "vehicle_type",
-    label: "차량종류",
-  },
-  {
-    key: "is_public_vehicle",
-    label: "공용여부",
-    render: (value: boolean) => (value ? "공용" : "비공용"),
-  },
-  {
-    key: "owner_department",
-    label: "소유 부서",
-  },
-  {
-    key: "is_free_pass_enabled",
-    label: "프리패스",
-    render: (value: boolean) => (value ? "프리패스" : "비프리패스"),
-  },
-  {
-    key: "special_notes",
-    label: "비고",
-  },
-  {
-    key: "status",
-    label: "상태",
-    render: (value: string) => {
-      switch (value) {
-        case "active":
-          return "활성";
-        case "inactive":
-          return "비활성";
-        case "blocked":
-          return "차단";
-        default:
-          return value;
-      }
+  fields: [
+    {
+      attribute: "plate_number",
+      label: "차량번호",
+      placeholder: "1234가1234",
+      type: "text",
+      required: true,
+      defaultValue: "",
     },
-  },
-  {
-    key: "access_start_date",
-    label: "접근 시작일",
-    type: "date" as const,
-  },
-  {
-    key: "access_end_date",
-    label: "접근 종료일",
-    type: "date" as const,
-  },
-];
+    {
+      attribute: "vehicle_type",
+      label: "차량종류",
+      placeholder: "차량종류",
+      type: "text",
+      defaultValue: "",
+    },
+    {
+      attribute: "is_public_vehicle",
+      label: "공용여부",
+      placeholder: "공용",
+      type: "boolean",
+      defaultValue: false,
+      dataPair: {
+        true: "공용 차량",
+        false: "개인 차량",
+      },
+      required: true,
+    },
+    {
+      attribute: "owner_department",
+      label: "부서명",
+      placeholder: "부서명",
+      type: "text",
+      defaultValue: "",
+    },
+    {
+      attribute: "access_start_date",
+      label: "접근 시작일",
+      type: "date",
+      defaultValue: "",
+      datePair: {
+        startDateField: "access_start_date",
+        endDateField: "access_end_date",
+      },
+    },
+    {
+      attribute: "access_end_date",
+      label: "접근 종료일",
+      type: "date",
+      defaultValue: "",
+      datePair: {
+        startDateField: "access_start_date",
+        endDateField: "access_end_date",
+      },
+    },
+    {
+      attribute: "is_free_pass_enabled",
+      label: "프리패스",
+      type: "boolean",
+      defaultValue: false,
+      dataPair: {
+        true: "프리패스 O",
+        false: "프리패스 X",
+      },
+      required: true,
+    },
+    {
+      attribute: "special_notes",
+      label: "특이사항",
+      placeholder: "특이사항",
+      type: "text",
+      defaultValue: "",
+    },
+    {
+      attribute: "status",
+      label: "상태",
+      type: "select",
+      defaultValue: "active",
+      dataPair: {
+        active: "활성",
+        inactive: "비활성",
+        blocked: "차단",
+      },
+      required: true,
+    },
+  ],
+};
 
 export default function Vehicles() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<VehicleFilters>({});
   const pageSize = 20;
-  const [open, setOpen] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [commonModalOpen, setCommonModalOpen] = useState(false);
+  const [commonModalState, setCommonModalState] = useState<
+    "READ" | "ADD" | "UPDATE"
+  >("READ");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
-  const [updateModalOpen, setUpdateModalOpen] = useState(false);
   // 필터가 없으면 모든 데이터를 가져옴
   const {
     data: vehicles,
@@ -232,63 +274,65 @@ export default function Vehicles() {
     setCurrentPage(1); // 검색 시 첫 페이지로 이동
   };
 
-  // 행 클릭 핸들러
+  // 행 클릭 핸들러 (READ 모드로 열기)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleRowClick = (row: any) => {
     setSelectedRecord(row);
-    setOpen(true);
+    setCommonModalState("READ");
+    setCommonModalOpen(true);
   };
 
-  // 모달 닫기 핸들러
-  const handleModalClose = () => {
-    setOpen(false);
+  // CommonModal 닫기 핸들러
+  const handleCommonModalClose = () => {
+    setCommonModalOpen(false);
     setSelectedRecord(null);
   };
 
-  // 수정 핸들러
-  const handleEdit = () => {
-    // TODO: 수정 기능 구현
-    // console.log("수정 기능 구현 필요");
+  // 추가 버튼 클릭 핸들러
+  const handleAddClick = () => {
+    setSelectedRecord(null);
+    setCommonModalState("ADD");
+    setCommonModalOpen(true);
   };
 
-  const handleUpdateModalClose = () => {
-    setUpdateModalOpen(false);
-  };
-
-  const handleAddModalClose = () => {
-    setAddModalOpen(false);
-  };
-
-  // 차량 데이터 추가 핸들러
-  const handleAddSubmit = async (data: Record<string, unknown>) => {
+  // CommonModal 제출 핸들러 (추가/수정)
+  const handleCommonModalSubmit = async (data: Record<string, unknown>) => {
     try {
-      // console.log("추가할 차량 데이터:", data);
+      if (commonModalState === "ADD") {
+        // 차량 데이터를 Supabase에 저장
+        const result = await addVehicleToSupabase(data);
 
-      // 차량 데이터를 Supabase에 저장
-      const result = await addVehicleToSupabase(data);
+        if (result.error) {
+          const errorMessage =
+            result.error &&
+            typeof result.error === "object" &&
+            "message" in result.error
+              ? String((result.error as Record<string, unknown>).message)
+              : "알 수 없는 오류";
+          throw new Error(`데이터 저장 실패: ${errorMessage}`);
+        }
 
-      if (result.error) {
-        const errorMessage =
-          result.error &&
-          typeof result.error === "object" &&
-          "message" in result.error
-            ? String((result.error as Record<string, unknown>).message)
-            : "알 수 없는 오류";
-        throw new Error(`데이터 저장 실패: ${errorMessage}`);
+        // 성공 시 처리
+        setCommonModalOpen(false);
+        refetch(); // 차량 데이터 새로고침
+      } else if (commonModalState === "UPDATE") {
+        // TODO: 수정 기능 구현
+        console.log("수정할 차량 데이터:", data);
+        // updateVehicleInSupabase(data);
+        setCommonModalOpen(false);
+        refetch();
       }
-
-      // console.log("차량 데이터 저장 성공:", result);
-
-      // 성공 시 처리
-      setAddModalOpen(false);
-      refetch(); // 차량 데이터 새로고침
     } catch (error) {
-      console.error("차량 추가 실패:", error);
+      console.error("차량 처리 실패:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
           : "알 수 없는 오류가 발생했습니다.";
-      alert(`차량 추가에 실패했습니다: ${errorMessage}`);
+      alert(
+        `차량 ${
+          commonModalState === "ADD" ? "추가" : "수정"
+        }에 실패했습니다: ${errorMessage}`
+      );
     }
   };
 
@@ -325,7 +369,7 @@ export default function Vehicles() {
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
           <Button
             className="bg-[var(--point)] fixed left-4 rounded-full"
-            onClick={() => setAddModalOpen(true)}
+            onClick={handleAddClick}
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -341,26 +385,13 @@ export default function Vehicles() {
             description="차량 정보를 검색할 수 있습니다."
           />
         </div>
-        <AddModal
-          open={addModalOpen}
-          onCancel={handleAddModalClose}
-          fields={vehicleFields}
-          title="차량 추가"
-          description="차량 정보를 추가할 수 있습니다."
-          onSubmit={handleAddSubmit}
-        />
-        <DetailModal
-          open={open}
-          onCancel={handleModalClose}
+        <CommonModal
+          state={commonModalState}
+          open={commonModalOpen}
+          onCancel={handleCommonModalClose}
           data={selectedRecord}
-          title="차량 상세 정보"
-          description="선택된 차량의 상세 정보입니다."
-          fields={DETAIL_FIELDS}
-          onEdit={handleEdit}
-          showEditButton={true}
-          showPhoto={true}
-          basicPhotoPath="/car.webp"
-          photoShape="square"
+          title="차량"
+          onSubmit={handleCommonModalSubmit}
         />
       </main>
     </>
