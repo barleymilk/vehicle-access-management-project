@@ -1,8 +1,12 @@
 "use client";
 
 import Header from "@/components/Header";
-import { useState } from "react";
-import { useFilteredVehicles, addVehicleToSupabase } from "@/hooks/useSupabase";
+import { useState, useCallback } from "react";
+import {
+  useFilteredVehicles,
+  addVehicleToSupabase,
+  updateVehicleInSupabase,
+} from "@/hooks/useSupabase";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -295,9 +299,20 @@ export default function Vehicles() {
     setCommonModalOpen(true);
   };
 
+  // 모드 변경 핸들러
+  const handleModeChange = useCallback((mode: "READ" | "ADD" | "UPDATE") => {
+    setCommonModalState(mode);
+  }, []);
+
   // CommonModal 제출 핸들러 (추가/수정)
   const handleCommonModalSubmit = async (data: Record<string, unknown>) => {
     try {
+      console.log("handleCommonModalSubmit 호출됨:", {
+        commonModalState,
+        data,
+        selectedRecord,
+      });
+
       if (commonModalState === "ADD") {
         // 차량 데이터를 Supabase에 저장
         const result = await addVehicleToSupabase(data);
@@ -316,11 +331,26 @@ export default function Vehicles() {
         setCommonModalOpen(false);
         refetch(); // 차량 데이터 새로고침
       } else if (commonModalState === "UPDATE") {
-        // TODO: 수정 기능 구현
-        console.log("수정할 차량 데이터:", data);
-        // updateVehicleInSupabase(data);
+        // 차량 데이터를 Supabase에서 수정
+        if (!selectedRecord?.id) {
+          throw new Error("수정할 차량의 ID가 없습니다.");
+        }
+
+        const result = await updateVehicleInSupabase(selectedRecord.id, data);
+
+        if (result.error) {
+          const errorMessage =
+            result.error &&
+            typeof result.error === "object" &&
+            "message" in result.error
+              ? String((result.error as Record<string, unknown>).message)
+              : "알 수 없는 오류";
+          throw new Error(`데이터 수정 실패: ${errorMessage}`);
+        }
+
+        // 성공 시 처리
         setCommonModalOpen(false);
-        refetch();
+        refetch(); // 차량 데이터 새로고침
       }
     } catch (error) {
       console.error("차량 처리 실패:", error);
@@ -392,6 +422,7 @@ export default function Vehicles() {
           data={selectedRecord}
           title="차량"
           onSubmit={handleCommonModalSubmit}
+          onModeChange={handleModeChange}
         />
       </main>
     </>

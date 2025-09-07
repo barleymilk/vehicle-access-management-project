@@ -406,11 +406,32 @@ export async function addVehicleToSupabase(vehicleData: {
 
     // 날짜 필드 처리
     if (vehicleData.access_start_date) {
-      dataToInsert.access_start_date =
-        vehicleData.access_start_date.toISOString();
+      if (vehicleData.access_start_date instanceof Date) {
+        dataToInsert.access_start_date =
+          vehicleData.access_start_date.toISOString();
+      } else if (typeof vehicleData.access_start_date === "string") {
+        dataToInsert.access_start_date = vehicleData.access_start_date;
+      } else {
+        // 다른 타입의 경우 Date 객체로 변환 시도
+        const date = new Date(vehicleData.access_start_date);
+        if (!isNaN(date.getTime())) {
+          dataToInsert.access_start_date = date.toISOString();
+        }
+      }
     }
     if (vehicleData.access_end_date) {
-      dataToInsert.access_end_date = vehicleData.access_end_date.toISOString();
+      if (vehicleData.access_end_date instanceof Date) {
+        dataToInsert.access_end_date =
+          vehicleData.access_end_date.toISOString();
+      } else if (typeof vehicleData.access_end_date === "string") {
+        dataToInsert.access_end_date = vehicleData.access_end_date;
+      } else {
+        // 다른 타입의 경우 Date 객체로 변환 시도
+        const date = new Date(vehicleData.access_end_date);
+        if (!isNaN(date.getTime())) {
+          dataToInsert.access_end_date = date.toISOString();
+        }
+      }
     }
 
     const { data, error } = await supabase
@@ -425,6 +446,109 @@ export async function addVehicleToSupabase(vehicleData: {
     return { data, error: null };
   } catch (error) {
     console.error("Vehicles 테이블에 데이터 추가 중 오류:", error);
+    return { data: null, error };
+  }
+}
+
+export async function updateVehicleInSupabase(
+  id: number,
+  vehicleData: {
+    plate_number?: string;
+    vehicle_type?: string;
+    is_public_vehicle?: boolean;
+    owner_department?: string;
+    access_start_date?: Date;
+    access_end_date?: Date;
+    is_free_pass_enabled?: boolean;
+    special_notes?: string;
+    status?: string;
+    photo_path?: string;
+  }
+) {
+  try {
+    // 필수 필드 검증
+    if (!id) {
+      throw new Error("차량 ID는 필수 입력 항목입니다.");
+    }
+    if (!vehicleData.plate_number) {
+      throw new Error("차량번호는 필수 입력 항목입니다.");
+    }
+
+    // 업데이트할 데이터 준비
+    const dataToUpdate: {
+      plate_number: string;
+      vehicle_type: string;
+      is_public_vehicle: boolean;
+      owner_department: string;
+      access_start_date?: string;
+      access_end_date?: string;
+      is_free_pass_enabled: boolean;
+      special_notes: string;
+      status: string;
+      photo_path?: string;
+      updated_at: string;
+    } = {
+      plate_number: vehicleData.plate_number,
+      vehicle_type: vehicleData.vehicle_type || "",
+      is_public_vehicle:
+        vehicleData.is_public_vehicle !== undefined
+          ? vehicleData.is_public_vehicle
+          : false,
+      owner_department: vehicleData.owner_department || "",
+      is_free_pass_enabled:
+        vehicleData.is_free_pass_enabled !== undefined
+          ? vehicleData.is_free_pass_enabled
+          : false,
+      special_notes: vehicleData.special_notes || "",
+      status: vehicleData.status || "active",
+      photo_path: vehicleData.photo_path,
+      updated_at: new Date().toISOString(),
+    };
+
+    // 날짜 필드 처리
+    if (vehicleData.access_start_date) {
+      if (vehicleData.access_start_date instanceof Date) {
+        dataToUpdate.access_start_date =
+          vehicleData.access_start_date.toISOString();
+      } else if (typeof vehicleData.access_start_date === "string") {
+        dataToUpdate.access_start_date = vehicleData.access_start_date;
+      } else {
+        // 다른 타입의 경우 Date 객체로 변환 시도
+        const date = new Date(vehicleData.access_start_date);
+        if (!isNaN(date.getTime())) {
+          dataToUpdate.access_start_date = date.toISOString();
+        }
+      }
+    }
+    if (vehicleData.access_end_date) {
+      if (vehicleData.access_end_date instanceof Date) {
+        dataToUpdate.access_end_date =
+          vehicleData.access_end_date.toISOString();
+      } else if (typeof vehicleData.access_end_date === "string") {
+        dataToUpdate.access_end_date = vehicleData.access_end_date;
+      } else {
+        // 다른 타입의 경우 Date 객체로 변환 시도
+        const date = new Date(vehicleData.access_end_date);
+        if (!isNaN(date.getTime())) {
+          dataToUpdate.access_end_date = date.toISOString();
+        }
+      }
+    }
+
+    // Supabase에서 데이터 업데이트
+    const { data, error } = await supabase
+      .from("Vehicles")
+      .update(dataToUpdate)
+      .eq("id", id)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("Vehicles 테이블에 데이터 수정 중 오류:", error);
     return { data: null, error };
   }
 }

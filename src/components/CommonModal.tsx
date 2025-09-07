@@ -139,6 +139,7 @@ interface CommonModalProps {
   title?: string; // 모달 제목
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit?: (data: any) => void; // 저장/추가/수정 시 호출
+  onModeChange?: (mode: "READ" | "ADD" | "UPDATE") => void; // 모드 변경 시 호출
 }
 
 function Photo({
@@ -231,6 +232,7 @@ export default function CommonModal({
   data,
   title = "데이터",
   onSubmit,
+  onModeChange,
 }: CommonModalProps) {
   const [mode, setMode] = useState<"READ" | "ADD" | "UPDATE">(state); // mode: READ, ADD, UPDATE
   const dialogContentRef = useRef<HTMLDivElement>(null);
@@ -240,12 +242,17 @@ export default function CommonModal({
     setMode(state);
   }, [state]);
 
-  // 모드가 변경될 때 스크롤을 최상단으로 이동
+  // 모드가 변경될 때 스크롤을 최상단으로 이동하고 부모 컴포넌트에 알림
   useEffect(() => {
     if (dialogContentRef.current) {
       dialogContentRef.current.scrollTop = 0;
     }
-  }, [mode]);
+    // 부모 컴포넌트에 모드 변경 알림
+    if (onModeChange) {
+      onModeChange(mode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]); // onModeChange를 dependency에서 제거 (무한 루프 방지)
   // 초기 데이터를 별도로 저장 (초기화 시 사용)
   const [initialFormData, setInitialFormData] = useState(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -272,8 +279,17 @@ export default function CommonModal({
         initialData[item.attribute] = item.defaultValue;
       } else {
         // READ/UPDATE 모드: 실제 데이터 또는 defaultValue 사용
-        initialData[item.attribute] =
-          data?.[item.attribute] || item.defaultValue;
+        let value = data?.[item.attribute] || item.defaultValue;
+
+        // 날짜 필드인 경우 Date 객체로 변환
+        if (item.type === "date" && value && typeof value === "string") {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            value = date;
+          }
+        }
+
+        initialData[item.attribute] = value;
       }
     });
 
@@ -304,8 +320,17 @@ export default function CommonModal({
       if (mode === "ADD") {
         newFormData[item.attribute] = item.defaultValue;
       } else {
-        newFormData[item.attribute] =
-          data?.[item.attribute] || item.defaultValue;
+        let value = data?.[item.attribute] || item.defaultValue;
+
+        // 날짜 필드인 경우 Date 객체로 변환
+        if (item.type === "date" && value && typeof value === "string") {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            value = date;
+          }
+        }
+
+        newFormData[item.attribute] = value;
       }
     });
 
