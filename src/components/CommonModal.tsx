@@ -40,6 +40,7 @@ interface CommonModalProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit?: (data: any) => void; // 저장/추가/수정 시 호출
   onModeChange?: (mode: "READ" | "ADD" | "UPDATE") => void; // 모드 변경 시 호출
+  disableEdit?: boolean; // 수정 기능 비활성화
 }
 
 function Photo({
@@ -172,6 +173,7 @@ export default function CommonModal({
   modalData,
   onSubmit,
   onModeChange,
+  disableEdit = false,
 }: CommonModalProps) {
   const [mode, setMode] = useState<"READ" | "ADD" | "UPDATE">(state); // mode: READ, ADD, UPDATE
   const dialogContentRef = useRef<HTMLDivElement>(null);
@@ -368,12 +370,12 @@ export default function CommonModal({
               {/* item.type의 값에 따라 다르게 렌더링: text, boolean(select 타입의 일종), select, date */}
               {item.type === "text" &&
                 (mode === "READ" ? (
-                  <div className="flex-1 rounded-full text-sm bg-gray-100 px-3 py-2">
+                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
                     {formData[item.attribute] || "-"}
                   </div>
                 ) : (
                   <Input
-                    className="flex-1 rounded-full text-sm placeholder:text-gray-400"
+                    className="flex-1 rounded-[20px] text-sm placeholder:text-gray-400"
                     placeholder={item.placeholder}
                     value={formData[item.attribute] || ""}
                     onChange={(e) => {
@@ -387,7 +389,7 @@ export default function CommonModal({
               {item.type === "boolean" &&
                 item.dataPair &&
                 (mode === "READ" ? (
-                  <div className="flex-1 rounded-full text-sm bg-gray-100 px-3 py-2">
+                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {(item.dataPair as any)[
                       formData[item.attribute]?.toString()
@@ -403,7 +405,7 @@ export default function CommonModal({
                       }));
                     }}
                   >
-                    <SelectTrigger className="w-full rounded-full">
+                    <SelectTrigger className="w-full rounded-[20px]">
                       <SelectValue placeholder="선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
@@ -418,7 +420,7 @@ export default function CommonModal({
               {item.type === "select" &&
                 item.dataPair &&
                 (mode === "READ" ? (
-                  <div className="flex-1 rounded-full text-sm bg-gray-100 px-3 py-2">
+                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {(item.dataPair as any)[
                       formData[item.attribute]?.toString()
@@ -434,7 +436,7 @@ export default function CommonModal({
                       }));
                     }}
                   >
-                    <SelectTrigger className="w-full rounded-full">
+                    <SelectTrigger className="w-full rounded-[20px]">
                       <SelectValue placeholder="선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
@@ -448,7 +450,7 @@ export default function CommonModal({
                 ))}
               {item.type === "date" &&
                 (mode === "READ" ? (
-                  <div className="flex-1 rounded-full text-sm bg-gray-100 px-3 py-2">
+                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
                     {formData[item.attribute] &&
                     typeof formData[item.attribute] === "string"
                       ? new Date(
@@ -469,7 +471,7 @@ export default function CommonModal({
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
-                          className="rounded-full flex-1"
+                          className="rounded-[20px] flex-1"
                         >
                           {formData[item.attribute] &&
                           typeof formData[item.attribute] === "string"
@@ -509,16 +511,18 @@ export default function CommonModal({
         </div>
         <DialogFooter>
           {mode === "READ" ? (
-            // READ 모드: 수정 버튼과 닫기 버튼만
+            // READ 모드: 수정 버튼과 닫기 버튼만 (disableEdit가 true면 수정 버튼 숨김)
             <>
-              <Button
-                className="bg-[var(--point)]"
-                onClick={() => {
-                  setMode("UPDATE");
-                }}
-              >
-                수정
-              </Button>
+              {!disableEdit && (
+                <Button
+                  className="bg-[var(--point)]"
+                  onClick={() => {
+                    setMode("UPDATE");
+                  }}
+                >
+                  수정
+                </Button>
+              )}
               <Button onClick={handleCancel} variant="outline">
                 닫기
               </Button>

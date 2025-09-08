@@ -247,6 +247,7 @@ export default function Access() {
           data={selectedRecord}
           title="출입 기록"
           modalData={ACCESS_MODAL_DATA}
+          disableEdit={true}
         />
       </main>
     </>
