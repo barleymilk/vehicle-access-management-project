@@ -21,114 +21,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { handleDatePairChange, DatePairConfig } from "@/lib/utils";
+import { ModalData } from "@/types";
 
 // mode 상태를 통해 읽기, 추가, 업데이트 기능이 각각 가능하게 함
 // READ: 수정 버튼, 삭제 버튼, 닫기 버튼
 // ADD: 초기화 버튼, 추가 버튼, 닫기 버튼
 // UPDATE: 초기화 버튼, 저장 버튼, 닫기 버튼
-
-const dummyVehicleData = {
-  title: "차량",
-  photo: {
-    attribute: "photo_path",
-    label: "사진",
-    placeholder: "사진",
-    type: "photo",
-    value: "/car.webp",
-    defaultValue: "/car.webp",
-  },
-  fields: [
-    {
-      attribute: "plate_number",
-      label: "차량번호",
-      placeholder: "1234가1234",
-      value: "1234가1234",
-      type: "text",
-      checkFunction: () => {
-        console.log("plate_number 검사 함수");
-      },
-      required: true,
-    },
-    {
-      attribute: "vehicle_type",
-      label: "차량종류",
-      placeholder: "차량종류",
-      value: "SUV",
-      type: "text",
-    },
-    {
-      attribute: "is_public_vehicle",
-      label: "공용여부",
-      placeholder: "공용",
-      value: false,
-      type: "boolean",
-      defaultValue: false,
-      dataPair: {
-        true: "공용 차량",
-        false: "개인 차량",
-      },
-      required: true,
-    },
-    {
-      attribute: "owner_department",
-      label: "부서명",
-      placeholder: "부서명",
-      type: "text",
-    },
-    {
-      attribute: "access_start_date",
-      label: "접근 시작일",
-      type: "date",
-      value: "2025-01-01",
-      datePair: {
-        startDateField: "access_start_date",
-        endDateField: "access_end_date",
-      },
-    },
-    {
-      attribute: "access_end_date",
-      label: "접근 종료일",
-      type: "date",
-      value: "2025-01-01",
-      datePair: {
-        startDateField: "access_start_date",
-        endDateField: "access_end_date",
-      },
-    },
-    {
-      attribute: "is_free_pass_enabled",
-      label: "프리패스",
-      value: false,
-      type: "boolean",
-      defaultValue: false,
-      dataPair: {
-        true: "프리패스 O",
-        false: "프리패스 X",
-      },
-      required: true,
-    },
-    {
-      attribute: "special_notes",
-      label: "특이사항",
-      placeholder: "특이사항",
-      type: "text",
-      value: "특이사항 노트",
-    },
-    {
-      attribute: "status",
-      label: "상태",
-      type: "select",
-      value: "active",
-      defaultValue: "active",
-      dataPair: {
-        active: "활성",
-        inactive: "비활성",
-        blocked: "차단",
-      },
-      required: true,
-    },
-  ],
-};
 
 interface CommonModalProps {
   state: "READ" | "ADD" | "UPDATE";
@@ -137,6 +35,7 @@ interface CommonModalProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any; // 실제 데이터
   title?: string; // 모달 제목
+  modalData: ModalData; // 모달 필드 구성 데이터
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit?: (data: any) => void; // 저장/추가/수정 시 호출
   onModeChange?: (mode: "READ" | "ADD" | "UPDATE") => void; // 모드 변경 시 호출
@@ -146,12 +45,14 @@ function Photo({
   mode,
   formData,
   setFormData,
+  modalData,
 }: {
   mode: "READ" | "ADD" | "UPDATE";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formData: Record<string, any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setFormData: (data: Record<string, any>) => void;
+  modalData: ModalData;
 }) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -176,10 +77,10 @@ function Photo({
     if (previewImage) return previewImage;
     if (
       formData.photo_path &&
-      formData.photo_path !== dummyVehicleData.photo.defaultValue
+      formData.photo_path !== modalData.photo.defaultValue
     )
       return formData.photo_path;
-    return dummyVehicleData.photo.defaultValue;
+    return modalData.photo.defaultValue;
   };
 
   if (mode === "READ") {
@@ -207,7 +108,7 @@ function Photo({
             setPreviewImage(null);
             setFormData({
               ...formData,
-              photo_path: dummyVehicleData.photo.defaultValue,
+              photo_path: modalData.photo.defaultValue,
             });
           }}
         >
@@ -231,11 +132,13 @@ export default function CommonModal({
   onCancel,
   data,
   title = "데이터",
+  modalData,
   onSubmit,
   onModeChange,
 }: CommonModalProps) {
   const [mode, setMode] = useState<"READ" | "ADD" | "UPDATE">(state); // mode: READ, ADD, UPDATE
   const dialogContentRef = useRef<HTMLDivElement>(null);
+  console.log("data", data);
 
   // state prop이 변경될 때 mode 업데이트
   useEffect(() => {
@@ -259,21 +162,19 @@ export default function CommonModal({
     const initialData: Record<string, any> = {};
 
     // 사진 데이터 추가
-    if (dummyVehicleData.photo) {
+    if (modalData.photo) {
       if (mode === "ADD") {
         // ADD 모드: defaultValue만 사용
-        initialData[dummyVehicleData.photo.attribute] =
-          dummyVehicleData.photo.defaultValue;
+        initialData[modalData.photo.attribute] = modalData.photo.defaultValue;
       } else {
         // READ/UPDATE 모드: 실제 데이터 또는 defaultValue 사용
-        initialData[dummyVehicleData.photo.attribute] =
-          data?.[dummyVehicleData.photo.attribute] ||
-          dummyVehicleData.photo.defaultValue;
+        initialData[modalData.photo.attribute] =
+          data?.[modalData.photo.attribute] || modalData.photo.defaultValue;
       }
     }
 
     // 일반 필드 데이터 추가
-    dummyVehicleData.fields.forEach((item) => {
+    modalData.fields.forEach((item) => {
       if (mode === "ADD") {
         // ADD 모드: defaultValue만 사용
         initialData[item.attribute] = item.defaultValue;
@@ -304,19 +205,17 @@ export default function CommonModal({
     const newFormData: Record<string, any> = {};
 
     // 사진 데이터 추가
-    if (dummyVehicleData.photo) {
+    if (modalData.photo) {
       if (mode === "ADD") {
-        newFormData[dummyVehicleData.photo.attribute] =
-          dummyVehicleData.photo.defaultValue;
+        newFormData[modalData.photo.attribute] = modalData.photo.defaultValue;
       } else {
-        newFormData[dummyVehicleData.photo.attribute] =
-          data?.[dummyVehicleData.photo.attribute] ||
-          dummyVehicleData.photo.defaultValue;
+        newFormData[modalData.photo.attribute] =
+          data?.[modalData.photo.attribute] || modalData.photo.defaultValue;
       }
     }
 
     // 일반 필드 데이터 추가
-    dummyVehicleData.fields.forEach((item) => {
+    modalData.fields.forEach((item) => {
       if (mode === "ADD") {
         newFormData[item.attribute] = item.defaultValue;
       } else {
@@ -336,15 +235,13 @@ export default function CommonModal({
 
     setFormData(newFormData);
     setInitialFormData(newFormData); // initialFormData도 함께 업데이트
-  }, [data, mode]);
+  }, [data, mode, modalData.fields, modalData.photo]);
 
   const handleDateChange = (field: string, value: unknown) => {
     let processedValue = value;
 
     // 필드 타입에 따른 처리
-    const fieldConfig = dummyVehicleData.fields.find(
-      (f) => f.attribute === field
-    );
+    const fieldConfig = modalData.fields.find((f) => f.attribute === field);
     if (fieldConfig?.type === "date") {
       processedValue =
         value && typeof value === "string" ? new Date(value) : value;
@@ -395,10 +292,15 @@ export default function CommonModal({
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {dummyVehicleData.photo && (
-            <Photo mode={mode} formData={formData} setFormData={setFormData} />
+          {modalData.photo && (
+            <Photo
+              mode={mode}
+              formData={formData}
+              setFormData={setFormData}
+              modalData={modalData}
+            />
           )}
-          {dummyVehicleData.fields.map((item) => (
+          {modalData.fields.map((item) => (
             <div key={item.label} className="flex items-center gap-2">
               <Label className="w-22 flex-shrink-0 text-sm font-semibold">
                 {item.label} {item.required && "*"}
@@ -570,12 +472,12 @@ export default function CommonModal({
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const resetData: Record<string, any> = {};
 
-                  if (dummyVehicleData.photo) {
-                    resetData[dummyVehicleData.photo.attribute] =
-                      dummyVehicleData.photo.defaultValue;
+                  if (modalData.photo) {
+                    resetData[modalData.photo.attribute] =
+                      modalData.photo.defaultValue;
                   }
 
-                  dummyVehicleData.fields.forEach((item) => {
+                  modalData.fields.forEach((item) => {
                     resetData[item.attribute] = item.defaultValue;
                   });
 

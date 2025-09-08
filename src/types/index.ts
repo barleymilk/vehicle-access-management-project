@@ -52,3 +52,47 @@ export interface TagInfo {
   text: string;
   variant: "default" | "secondary" | "destructive" | "outline" | "success";
 }
+
+// CommonModal용 필드 타입 정의
+export type FieldType = "text" | "boolean" | "date" | "select" | "photo";
+
+export interface DataPair {
+  [key: string]: string;
+}
+
+export interface DatePair {
+  startDateField: string;
+  endDateField: string;
+}
+
+export interface ModalField {
+  attribute: string;
+  label: string;
+  placeholder?: string;
+  type: FieldType;
+  required?: boolean;
+  defaultValue: string | boolean;
+  dataPair?: DataPair;
+  datePair?: DatePair;
+}
+
+export interface ModalPhoto {
+  attribute: string;
+  label: string;
+  placeholder: string;
+  type: "photo";
+  value: string;
+  defaultValue: string;
+}
+
+export interface ModalData {
+  title: string;
+  photo: ModalPhoto;
+  fields: ModalField[];
+}
+
+// 차량 모달 데이터 타입
+export type VehicleModalData = ModalData;
+
+// 인물 모달 데이터 타입
+export type PeopleModalData = ModalData;
