@@ -274,6 +274,29 @@ export default function CommonModal({
     setInitialFormData(newFormData); // initialFormData도 함께 업데이트
   }, [data, mode, modalData.fields, modalData.photo]);
 
+  // autoGenerate 처리
+  useEffect(() => {
+    const newFormData = { ...formData };
+    let hasChanges = false;
+
+    modalData.fields.forEach((field) => {
+      if (field.autoGenerate) {
+        const generatedValue = field.autoGenerate(formData);
+        if (
+          generatedValue !== undefined &&
+          generatedValue !== formData[field.attribute]
+        ) {
+          newFormData[field.attribute] = generatedValue;
+          hasChanges = true;
+        }
+      }
+    });
+
+    if (hasChanges) {
+      setFormData(newFormData);
+    }
+  }, [formData, modalData.fields]);
+
   const handleDateChange = (field: string, value: unknown) => {
     let processedValue = value;
 

@@ -41,24 +41,6 @@ export const PEOPLE_MODAL_DATA: PeopleModalData = {
       defaultValue: "",
     },
     {
-      attribute: "org_dept_pos",
-      label: "소속/부서/직급",
-      placeholder: "자동 생성됩니다",
-      type: "text",
-      defaultValue: "",
-      autoGenerate: (formData: Record<string, unknown>) => {
-        const org = formData.organization as string;
-        const dept = formData.department as string;
-        const pos = formData.position as string;
-
-        const parts = [org, dept, pos].filter(
-          (part) => part && typeof part === "string" && part.trim() !== ""
-        );
-
-        return parts.length > 0 ? parts.join(" / ") : undefined;
-      },
-    },
-    {
       attribute: "phone_number",
       label: "전화번호",
       placeholder: "전화번호를 입력하세요",
@@ -70,7 +52,6 @@ export const PEOPLE_MODAL_DATA: PeopleModalData = {
       label: "VIP 레벨",
       placeholder: "VIP 레벨을 선택하세요",
       type: "select",
-      required: true,
       defaultValue: "일반",
       dataPair: {
         VIP1: "VIP1",

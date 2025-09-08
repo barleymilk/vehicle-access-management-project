@@ -3,6 +3,18 @@ import { supabase } from "@/lib/supabase";
 import { SearchFilters, VehicleFilters } from "@/types/filters";
 import { Vehicle } from "@/types";
 
+// org_dept_pos 자동 생성 함수
+function generateOrgDeptPos(
+  organization?: string,
+  department?: string,
+  position?: string
+): string {
+  const parts = [organization, department, position].filter(
+    (part) => part && typeof part === "string" && part.trim() !== ""
+  );
+  return parts.length > 0 ? parts.join(" / ") : "";
+}
+
 interface UseSupabaseOptions {
   onError?: (error: unknown) => void;
   onSuccess?: (data: unknown) => void;
@@ -319,7 +331,11 @@ export async function addPersonToSupabase(personData: {
         personData.is_worker !== undefined ? personData.is_worker : false,
       status: personData.status || "active",
       photo_path: personData.photo_path,
-      org_dept_pos: personData.org_dept_pos,
+      org_dept_pos: generateOrgDeptPos(
+        personData.organization,
+        personData.department,
+        personData.position
+      ),
       contact_person_name: personData.contact_person_name || "",
       contact_person_phone: personData.contact_person_phone || "",
       created_at: new Date().toISOString(),
@@ -406,7 +422,11 @@ export async function updatePersonToSupabase(
         personData.is_worker !== undefined ? personData.is_worker : false,
       status: personData.status || "active",
       photo_path: personData.photo_path,
-      org_dept_pos: personData.org_dept_pos,
+      org_dept_pos: generateOrgDeptPos(
+        personData.organization,
+        personData.department,
+        personData.position
+      ),
       contact_person_name: personData.contact_person_name || "",
       contact_person_phone: personData.contact_person_phone || "",
       updated_at: new Date().toISOString(),
