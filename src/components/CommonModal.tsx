@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { handleDatePairChange, DatePairConfig } from "@/lib/utils";
 import { ModalData } from "@/types";
+import { getPhotoPath, uploadImageToSupabase } from "@/hooks/useSupabase";
 
 // mode 상태를 통해 읽기, 추가, 업데이트 기능이 각각 가능하게 함
 // READ: 수정 버튼, 삭제 버튼, 닫기 버튼
@@ -55,8 +56,31 @@ function Photo({
   modalData: ModalData;
 }) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // photo_path가 변경될 때 Supabase에서 이미지 URL 가져오기
+  useEffect(() => {
+    const loadImageUrl = async () => {
+      if (
+        formData.photo_path &&
+        formData.photo_path !== modalData.photo.defaultValue
+      ) {
+        try {
+          const url = await getPhotoPath(formData.photo_path as string);
+          setImageUrl(url);
+        } catch (error) {
+          console.error("이미지 URL 로드 실패:", error);
+          setImageUrl(null);
+        }
+      } else {
+        setImageUrl(null);
+      }
+    };
+
+    loadImageUrl();
+  }, [formData.photo_path, modalData.photo.defaultValue]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // 미리보기 이미지 생성
@@ -64,22 +88,35 @@ function Photo({
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setPreviewImage(result);
-        setFormData({
-          ...formData,
-          photo_path: result,
-        });
       };
       reader.readAsDataURL(file);
+
+      // Supabase에 이미지 업로드
+      try {
+        const folderName = modalData.title === "인물" ? "people" : "vehicles";
+        const uploadResult = await uploadImageToSupabase(
+          file,
+          "images",
+          folderName
+        );
+
+        if (uploadResult) {
+          setFormData({
+            ...formData,
+            photo_path: uploadResult,
+          });
+        } else {
+          console.error("이미지 업로드 실패");
+        }
+      } catch (error) {
+        console.error("이미지 업로드 중 오류:", error);
+      }
     }
   };
 
   const getImageSrc = () => {
     if (previewImage) return previewImage;
-    if (
-      formData.photo_path &&
-      formData.photo_path !== modalData.photo.defaultValue
-    )
-      return formData.photo_path;
+    if (imageUrl) return imageUrl;
     return modalData.photo.defaultValue;
   };
 

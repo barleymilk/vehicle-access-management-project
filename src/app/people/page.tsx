@@ -7,13 +7,15 @@ import { ErrorDisplay } from "@/components/ui/error-display";
 import { DataTable } from "@/components/DataTable";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { DataFilter } from "@/components/DataFilter";
-import DetailModal from "@/components/DetailModal";
 import { DatePairConfig } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AddModal from "@/components/AddModal";
-import { peopleFields } from "@/components/field-configs/people-fields";
-import { addPersonToSupabase } from "@/hooks/useSupabase";
+import CommonModal from "@/components/CommonModal";
+import { PEOPLE_MODAL_DATA } from "@/components/field-configs/people-modal-data";
+import {
+  addPersonToSupabase,
+  updatePersonToSupabase,
+} from "@/hooks/useSupabase";
 
 export interface PeopleFilters {
   name?: string;
@@ -187,72 +189,14 @@ const TABLE_COLUMNS = [
   },
 ];
 
-// DetailModal용 필드 정의
-const DETAIL_FIELDS = [
-  {
-    key: "name",
-    label: "이름",
-  },
-  {
-    key: "organization",
-    label: "소속",
-  },
-  {
-    key: "department",
-    label: "부서",
-  },
-  {
-    key: "position",
-    label: "직책",
-  },
-  {
-    key: "phone_number",
-    label: "전화번호",
-    type: "phone" as const,
-  },
-  {
-    key: "vip_level",
-    label: "VIP 레벨",
-  },
-  {
-    key: "is_worker",
-    label: "외부용역",
-    render: (value: boolean) => (value ? "외부용역" : "내부직원"),
-  },
-  {
-    key: "activity_start_date",
-    label: "활동 시작일",
-    type: "date" as const,
-  },
-  {
-    key: "activity_end_date",
-    label: "활동 종료일",
-    type: "date" as const,
-  },
-  {
-    key: "status",
-    label: "상태",
-    render: (value: string) => {
-      switch (value) {
-        case "active":
-          return "활성";
-        case "inactive":
-          return "비활성";
-        case "blocked":
-          return "차단";
-        default:
-          return value;
-      }
-    },
-  },
-];
-
 export default function People() {
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<PeopleFilters>({});
   const pageSize = 20;
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [commonModalOpen, setCommonModalOpen] = useState(false);
+  const [commonModalState, setCommonModalState] = useState<
+    "READ" | "ADD" | "UPDATE"
+  >("READ");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
 
@@ -284,24 +228,13 @@ export default function People() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleRowClick = (row: any) => {
     setSelectedRecord(row);
-    setDetailModalOpen(true);
+    setCommonModalState("READ");
+    setCommonModalOpen(true);
   };
 
-  // 모달 닫기 핸들러
-  const handleModalClose = () => {
-    setDetailModalOpen(false);
+  const handleCommonModalClose = () => {
+    setCommonModalOpen(false);
     setSelectedRecord(null);
-  };
-
-  const handleAddModalClose = () => {
-    setAddModalOpen(false);
-    setSelectedRecord(null);
-  };
-
-  // 수정 핸들러
-  const handleEdit = () => {
-    // TODO: 수정 기능 구현
-    // console.log("수정 기능 구현 필요");
   };
 
   if (error) {
@@ -337,7 +270,10 @@ export default function People() {
         <div className="flex justify-center items-center gap-2 my-auto h-[50px]">
           <Button
             className="bg-[var(--point)] fixed left-4 rounded-full"
-            onClick={() => setAddModalOpen(true)}
+            onClick={() => {
+              setCommonModalState("ADD");
+              setCommonModalOpen(true);
+            }}
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -353,35 +289,43 @@ export default function People() {
             description="인물 정보를 검색할 수 있습니다."
           />
         </div>
-        <AddModal
-          open={addModalOpen}
-          onCancel={handleAddModalClose}
-          title="인물 추가"
-          description="새로운 인물 정보를 입력하세요"
-          fields={peopleFields}
+        <CommonModal
+          state={commonModalState}
+          open={commonModalOpen}
+          onCancel={handleCommonModalClose}
+          data={selectedRecord}
+          title="인물"
+          modalData={PEOPLE_MODAL_DATA}
           onSubmit={async (data) => {
             try {
-              await addPersonToSupabase(data);
-              // 성공 시 모달 닫기 및 데이터 새로고침
-              handleAddModalClose();
-              refetch();
+              if (commonModalState === "ADD") {
+                await addPersonToSupabase(data);
+                // 성공 시 모달 닫기 및 데이터 새로고침
+                handleCommonModalClose();
+                refetch();
+              } else if (commonModalState === "UPDATE") {
+                if (!selectedRecord?.id) {
+                  throw new Error("수정할 인물의 ID가 없습니다.");
+                }
+                await updatePersonToSupabase(selectedRecord.id, data);
+                // 성공 시 모달 닫기 및 데이터 새로고침
+                handleCommonModalClose();
+                refetch();
+              }
             } catch (error) {
-              console.error("인물 추가 실패:", error);
-              alert("인물 추가에 실패했습니다.");
+              console.error("인물 처리 실패:", error);
+              const errorMessage =
+                error instanceof Error ? error.message : "알 수 없는 오류";
+              alert(
+                `인물 ${
+                  commonModalState === "ADD" ? "추가" : "수정"
+                }에 실패했습니다: ${errorMessage}`
+              );
             }
           }}
-        />
-        <DetailModal
-          open={detailModalOpen}
-          onCancel={handleModalClose}
-          data={selectedRecord}
-          title="인물 상세 정보"
-          description="선택된 인물의 상세 정보입니다."
-          fields={DETAIL_FIELDS}
-          onEdit={handleEdit}
-          showEditButton={true}
-          showPhoto={true}
-          basicPhotoPath="/user.webp"
+          onModeChange={(mode) => {
+            setCommonModalState(mode);
+          }}
         />
       </main>
     </>

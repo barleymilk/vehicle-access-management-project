@@ -74,6 +74,7 @@ export interface ModalField {
   defaultValue: string | boolean;
   dataPair?: DataPair;
   datePair?: DatePair;
+  autoGenerate?: (formData: Record<string, unknown>) => unknown;
 }
 
 export interface ModalPhoto {
