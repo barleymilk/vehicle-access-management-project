@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { SearchFilters, VehicleFilters } from "@/types/filters";
-import { Vehicle } from "@/types";
+import { Vehicle, Driver } from "@/types";
 
 // org_dept_pos 자동 생성 함수
 function generateOrgDeptPos(
@@ -887,4 +887,49 @@ export async function uploadImageToSupabase(
       throw new Error(`알 수 없는 업로드 오류: ${String(error)}`);
     }
   }
+}
+
+// 사람 이름으로 검색하는 훅 (자동완성용)
+export function usePeopleSearch(searchTerm: string, enabled = true) {
+  const [data, setData] = useState<Driver[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+
+  useEffect(() => {
+    const searchPeople = async () => {
+      if (!enabled || !searchTerm || searchTerm.trim().length < 1) {
+        setData([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { data: searchData, error: searchError } = await supabase
+          .from("People")
+          .select("*")
+          .ilike("name", `%${searchTerm}%`)
+          .order("name", { ascending: true })
+          .limit(10);
+
+        if (searchError) {
+          throw searchError;
+        }
+
+        setData(searchData || []);
+      } catch (err) {
+        console.error("사람 검색 중 오류:", err);
+        setError(err);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    searchPeople();
+  }, [searchTerm, enabled]);
+
+  return { data, loading, error };
 }

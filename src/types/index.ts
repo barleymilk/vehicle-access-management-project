@@ -29,6 +29,7 @@ export interface Driver {
   contact_person_phone: string;
   vip_level: string;
   org_dept_pos: string;
+  status: string;
 }
 
 export interface RecordData {

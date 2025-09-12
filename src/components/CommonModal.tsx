@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { ChevronDownIcon, FolderSearch2, Trash } from "lucide-react";
+import { ChevronDownIcon, FolderSearch2, Trash, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,9 +20,11 @@ import {
 } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { handleDatePairChange, DatePairConfig } from "@/lib/utils";
-import { ModalData } from "@/types";
+import { ModalData, Driver } from "@/types";
 import { getPhotoPath, uploadImageToSupabase } from "@/hooks/useSupabase";
+import PersonSearchInput from "./PersonSearchInput";
 
 // mode 상태를 통해 읽기, 추가, 업데이트 기능이 각각 가능하게 함
 // READ: 수정 버튼, 삭제 버튼, 닫기 버튼
@@ -41,127 +43,6 @@ interface CommonModalProps {
   onSubmit?: (data: any) => void; // 저장/추가/수정 시 호출
   onModeChange?: (mode: "READ" | "ADD" | "UPDATE") => void; // 모드 변경 시 호출
   disableEdit?: boolean; // 수정 기능 비활성화
-}
-
-function Photo({
-  mode,
-  formData,
-  setFormData,
-  modalData,
-}: {
-  mode: "READ" | "ADD" | "UPDATE";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  formData: Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setFormData: (data: Record<string, any>) => void;
-  modalData: ModalData;
-}) {
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-  // photo_path가 변경될 때 Supabase에서 이미지 URL 가져오기
-  useEffect(() => {
-    const loadImageUrl = async () => {
-      if (
-        formData.photo_path &&
-        formData.photo_path !== modalData.photo.defaultValue
-      ) {
-        try {
-          const url = await getPhotoPath(formData.photo_path as string);
-          setImageUrl(url);
-        } catch (error) {
-          console.error("이미지 URL 로드 실패:", error);
-          setImageUrl(null);
-        }
-      } else {
-        setImageUrl(null);
-      }
-    };
-
-    loadImageUrl();
-  }, [formData.photo_path, modalData.photo.defaultValue]);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // 미리보기 이미지 생성
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setPreviewImage(result);
-      };
-      reader.readAsDataURL(file);
-
-      // Supabase에 이미지 업로드
-      try {
-        const folderName = modalData.title === "인물" ? "people" : "vehicles";
-        const uploadResult = await uploadImageToSupabase(
-          file,
-          "images",
-          folderName
-        );
-
-        if (uploadResult) {
-          setFormData({
-            ...formData,
-            photo_path: uploadResult,
-          });
-        } else {
-          console.error("이미지 업로드 실패");
-        }
-      } catch (error) {
-        console.error("이미지 업로드 중 오류:", error);
-      }
-    }
-  };
-
-  const getImageSrc = () => {
-    if (previewImage) return previewImage;
-    if (imageUrl) return imageUrl;
-    return modalData.photo.defaultValue;
-  };
-
-  if (mode === "READ") {
-    return (
-      <div className="relative w-full h-[100%] aspect-[2/1] rounded-lg border-2 border-gray-200 overflow-hidden">
-        <Image src={getImageSrc()} alt="photo" fill className="object-cover" />
-        {/* READ 모드에서는 버튼 없음 */}
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative w-full h-[100%] aspect-[2/1] rounded-lg border-2 border-gray-200 overflow-hidden">
-      <Image src={getImageSrc()} alt="photo" fill className="object-cover" />
-      <div className="absolute right-1 top-1">
-        <Button
-          className="bg-[var(--point)] rounded-full"
-          onClick={() => document.getElementById("photo-input")?.click()}
-        >
-          <FolderSearch2 />
-        </Button>
-        <Button
-          className="bg-red-500 rounded-full ml-1"
-          onClick={() => {
-            setPreviewImage(null);
-            setFormData({
-              ...formData,
-              photo_path: modalData.photo.defaultValue,
-            });
-          }}
-        >
-          <Trash />
-        </Button>
-      </div>
-      <input
-        id="photo-input"
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-    </div>
-  );
 }
 
 export default function CommonModal({
@@ -194,9 +75,9 @@ export default function CommonModal({
       onModeChange(mode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]); // onModeChange를 dependency에서 제거 (무한 루프 방지)
+  }, [mode]);
   // 초기 데이터를 별도로 저장 (초기화 시 사용)
-  const [initialFormData, setInitialFormData] = useState(() => {
+  const [initialFormData] = useState(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const initialData: Record<string, any> = {};
 
@@ -237,6 +118,7 @@ export default function CommonModal({
   });
   const [formData, setFormData] = useState(initialFormData);
   const [openDatePopover, setOpenDatePopover] = useState<string | null>(null);
+  const [selectedDrivers, setSelectedDrivers] = useState<Driver[]>([]);
 
   // 데이터가 변경될 때 formData와 initialFormData 업데이트
   useEffect(() => {
@@ -273,7 +155,6 @@ export default function CommonModal({
     });
 
     setFormData(newFormData);
-    setInitialFormData(newFormData); // initialFormData도 함께 업데이트
   }, [data, mode, modalData.fields, modalData.photo]);
 
   // autoGenerate 처리
@@ -332,6 +213,23 @@ export default function CommonModal({
     }
   };
 
+  // 운전자 선택 핸들러
+  const handleSelectDriver = (driver: Driver) => {
+    setSelectedDrivers((prev) => {
+      // 이미 선택된 운전자인지 확인
+      const isAlreadySelected = prev.some((d) => d.id === driver.id);
+      if (isAlreadySelected) {
+        return prev;
+      }
+      return [...prev, driver];
+    });
+  };
+
+  // 운전자 제거 핸들러
+  const handleRemoveDriver = (driverId: string) => {
+    setSelectedDrivers((prev) => prev.filter((d) => d.id !== driverId));
+  };
+
   // 모달 닫기 핸들러 (UPDATE 모드에서는 READ 모드로 복귀)
   const handleCancel = () => {
     if (mode === "UPDATE") {
@@ -354,6 +252,7 @@ export default function CommonModal({
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {/* 사진 섹션 */}
           {modalData.photo && (
             <Photo
               mode={mode}
@@ -362,152 +261,224 @@ export default function CommonModal({
               modalData={modalData}
             />
           )}
-          {modalData.fields.map((item) => (
-            <div key={item.label} className="flex items-center gap-2">
-              <Label className="w-22 flex-shrink-0 text-sm font-semibold">
-                {item.label} {item.required && "*"}
-              </Label>
-              {/* item.type의 값에 따라 다르게 렌더링: text, boolean(select 타입의 일종), select, date */}
-              {item.type === "text" &&
-                (mode === "READ" ? (
-                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
-                    {formData[item.attribute] || "-"}
-                  </div>
-                ) : (
-                  <Input
-                    className="flex-1 rounded-[20px] text-sm placeholder:text-gray-400"
-                    placeholder={item.placeholder}
-                    value={formData[item.attribute] || ""}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        [item.attribute]: e.target.value,
-                      }));
-                    }}
-                  />
-                ))}
-              {item.type === "boolean" &&
-                item.dataPair &&
-                (mode === "READ" ? (
-                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {(item.dataPair as any)[
-                      formData[item.attribute]?.toString()
-                    ] || "-"}
-                  </div>
-                ) : (
-                  <Select
-                    value={formData[item.attribute]?.toString()}
-                    onValueChange={(value) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        [item.attribute]: value === "true",
-                      }));
-                    }}
-                  >
-                    <SelectTrigger className="w-full rounded-[20px]">
-                      <SelectValue placeholder="선택하세요" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(item.dataPair).map(([key, value]) => (
-                        <SelectItem key={key} value={key}>
-                          {value.toString()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ))}
-              {item.type === "select" &&
-                item.dataPair &&
-                (mode === "READ" ? (
-                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {(item.dataPair as any)[
-                      formData[item.attribute]?.toString()
-                    ] || "-"}
-                  </div>
-                ) : (
-                  <Select
-                    value={formData[item.attribute]?.toString()}
-                    onValueChange={(value) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        [item.attribute]: value,
-                      }));
-                    }}
-                  >
-                    <SelectTrigger className="w-full rounded-[20px]">
-                      <SelectValue placeholder="선택하세요" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(item.dataPair).map(([key, value]) => (
-                        <SelectItem key={key} value={key}>
-                          {value.toString()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ))}
-              {item.type === "date" &&
-                (mode === "READ" ? (
-                  <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
-                    {formData[item.attribute] &&
-                    typeof formData[item.attribute] === "string"
-                      ? new Date(
-                          formData[item.attribute] as string
-                        ).toLocaleDateString()
-                      : formData[item.attribute] instanceof Date
-                      ? (formData[item.attribute] as Date).toLocaleDateString()
-                      : "-"}
-                  </div>
-                ) : (
-                  <>
-                    <Popover
-                      open={openDatePopover === item.attribute}
-                      onOpenChange={(open) =>
-                        setOpenDatePopover(open ? item.attribute : null)
-                      }
-                    >
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="rounded-[20px] flex-1"
+          {/* 필드 섹션 */}
+          <Tabs defaultValue="vehicle">
+            <TabsList>
+              <TabsTrigger value="vehicle">차량</TabsTrigger>
+              <TabsTrigger value="people">운전자</TabsTrigger>
+            </TabsList>
+            <TabsContent value="vehicle" className="grid gap-4 py-4">
+              {modalData.fields.map((item) => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <Label className="w-22 flex-shrink-0 text-sm font-semibold">
+                    {item.label} {item.required && "*"}
+                  </Label>
+                  {/* item.type의 값에 따라 다르게 렌더링: text, boolean(select 타입의 일종), select, date */}
+                  {item.type === "text" &&
+                    (mode === "READ" ? (
+                      <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
+                        {formData[item.attribute] || "-"}
+                      </div>
+                    ) : (
+                      <Input
+                        className="flex-1 rounded-[20px] text-sm placeholder:text-gray-400"
+                        placeholder={item.placeholder}
+                        value={formData[item.attribute] || ""}
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            [item.attribute]: e.target.value,
+                          }));
+                        }}
+                      />
+                    ))}
+                  {item.type === "boolean" &&
+                    item.dataPair &&
+                    (mode === "READ" ? (
+                      <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(item.dataPair as any)[
+                          formData[item.attribute]?.toString()
+                        ] || "-"}
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData[item.attribute]?.toString()}
+                        onValueChange={(value) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            [item.attribute]: value === "true",
+                          }));
+                        }}
+                      >
+                        <SelectTrigger className="w-full rounded-[20px]">
+                          <SelectValue placeholder="선택하세요" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(item.dataPair).map(([key, value]) => (
+                            <SelectItem key={key} value={key}>
+                              {value.toString()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ))}
+                  {item.type === "select" &&
+                    item.dataPair &&
+                    (mode === "READ" ? (
+                      <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(item.dataPair as any)[
+                          formData[item.attribute]?.toString()
+                        ] || "-"}
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData[item.attribute]?.toString()}
+                        onValueChange={(value) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            [item.attribute]: value,
+                          }));
+                        }}
+                      >
+                        <SelectTrigger className="w-full rounded-[20px]">
+                          <SelectValue placeholder="선택하세요" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(item.dataPair).map(([key, value]) => (
+                            <SelectItem key={key} value={key}>
+                              {value.toString()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ))}
+                  {item.type === "date" &&
+                    (mode === "READ" ? (
+                      <div className="flex-1 rounded-[20px] text-sm bg-gray-100 px-3 py-2">
+                        {formData[item.attribute] &&
+                        typeof formData[item.attribute] === "string"
+                          ? new Date(
+                              formData[item.attribute] as string
+                            ).toLocaleDateString()
+                          : formData[item.attribute] instanceof Date
+                          ? (
+                              formData[item.attribute] as Date
+                            ).toLocaleDateString()
+                          : "-"}
+                      </div>
+                    ) : (
+                      <>
+                        <Popover
+                          open={openDatePopover === item.attribute}
+                          onOpenChange={(open) =>
+                            setOpenDatePopover(open ? item.attribute : null)
+                          }
                         >
-                          {formData[item.attribute] &&
-                          typeof formData[item.attribute] === "string"
-                            ? new Date(
-                                formData[item.attribute] as string
-                              ).toLocaleDateString()
-                            : formData[item.attribute] instanceof Date
-                            ? (
-                                formData[item.attribute] as Date
-                              ).toLocaleDateString()
-                            : "날짜 선택"}
-                          <ChevronDownIcon className="ml-2 h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          captionLayout="dropdown"
-                          selected={
-                            formData[item.attribute] instanceof Date
-                              ? (formData[item.attribute] as Date)
-                              : formData[item.attribute] &&
-                                typeof formData[item.attribute] === "string"
-                              ? new Date(formData[item.attribute] as string)
-                              : undefined
-                          }
-                          onSelect={(date) =>
-                            handleDateChange(item.attribute, date)
-                          }
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </>
-                ))}
-            </div>
-          ))}
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="rounded-[20px] flex-1"
+                            >
+                              {formData[item.attribute] &&
+                              typeof formData[item.attribute] === "string"
+                                ? new Date(
+                                    formData[item.attribute] as string
+                                  ).toLocaleDateString()
+                                : formData[item.attribute] instanceof Date
+                                ? (
+                                    formData[item.attribute] as Date
+                                  ).toLocaleDateString()
+                                : "날짜 선택"}
+                              <ChevronDownIcon className="ml-2 h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              captionLayout="dropdown"
+                              selected={
+                                formData[item.attribute] instanceof Date
+                                  ? (formData[item.attribute] as Date)
+                                  : formData[item.attribute] &&
+                                    typeof formData[item.attribute] === "string"
+                                  ? new Date(formData[item.attribute] as string)
+                                  : undefined
+                              }
+                              onSelect={(date) =>
+                                handleDateChange(item.attribute, date)
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </>
+                    ))}
+                </div>
+              ))}
+            </TabsContent>
+            <TabsContent value="people" className="grid gap-4 py-4">
+              <div className="flex items-center justify-between gap-2">
+                <PersonSearchInput
+                  onSelectPerson={handleSelectDriver}
+                  placeholder="운전자 이름 검색"
+                  className="flex-1"
+                />
+              </div>
+
+              {/* 선택된 운전자 목록 */}
+              {selectedDrivers.length > 0 ? (
+                <div className="space-y-2">
+                  {selectedDrivers.map((driver) => (
+                    <div
+                      key={driver.id}
+                      className="bg-gray-100 rounded-[20px] p-4 relative"
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
+                        onClick={() => handleRemoveDriver(driver.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <div className="pr-8">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">
+                            운전자명: {driver.name}
+                          </span>
+                          {driver.status && driver.status !== "active" && (
+                            <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                              {driver.status}
+                            </span>
+                          )}
+                          {driver.vip_level && driver.vip_level !== "none" && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                              {driver.vip_level}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          소속:{" "}
+                          {driver.org_dept_pos
+                            ? driver.org_dept_pos
+                            : "소속 없음"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          전화번호: {driver.phone_number}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  검색하여 운전자를 선택해주세요.
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
         <DialogFooter>
           {mode === "READ" ? (
@@ -546,6 +517,7 @@ export default function CommonModal({
                   });
 
                   setFormData(resetData);
+                  setSelectedDrivers([]);
                 }}
                 variant="outline"
               >
@@ -558,7 +530,10 @@ export default function CommonModal({
                 className="bg-[var(--point)]"
                 onClick={() => {
                   if (onSubmit) {
-                    onSubmit(formData);
+                    onSubmit({
+                      ...formData,
+                      selectedDrivers: selectedDrivers,
+                    });
                   }
                 }}
               >
@@ -571,6 +546,7 @@ export default function CommonModal({
               <Button
                 onClick={() => {
                   setFormData(initialFormData);
+                  setSelectedDrivers([]);
                 }}
                 variant="outline"
               >
@@ -588,7 +564,10 @@ export default function CommonModal({
                 className="bg-[var(--point)]"
                 onClick={() => {
                   if (onSubmit) {
-                    onSubmit(formData);
+                    onSubmit({
+                      ...formData,
+                      selectedDrivers: selectedDrivers,
+                    });
                   }
                 }}
               >
@@ -599,5 +578,137 @@ export default function CommonModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Photo({
+  mode,
+  formData,
+  setFormData,
+  modalData,
+}: {
+  mode: "READ" | "ADD" | "UPDATE";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  formData: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setFormData: (data: Record<string, any>) => void;
+  modalData: ModalData;
+}) {
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // photo_path가 변경될 때 Supabase에서 이미지 URL 가져오기
+  useEffect(() => {
+    const loadImageUrl = async () => {
+      if (
+        formData.photo_path &&
+        formData.photo_path !== modalData.photo.defaultValue
+      ) {
+        try {
+          const url = await getPhotoPath(formData.photo_path as string);
+          setImageUrl(url);
+          // imageUrl이 로드된 후 previewImage 초기화 (깜빡임 방지)
+          setPreviewImage(null);
+        } catch (error) {
+          console.error("이미지 URL 로드 실패:", error);
+          setImageUrl(null);
+        }
+      } else {
+        setImageUrl(null);
+        // 기본값으로 초기화된 경우 previewImage도 초기화
+        setPreviewImage(null);
+      }
+    };
+
+    loadImageUrl();
+  }, [formData.photo_path, modalData.photo.defaultValue]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // 미리보기 이미지 생성
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setPreviewImage(result);
+        // 새로운 이미지 선택 시 기존 imageUrl 초기화
+        setImageUrl(null);
+      };
+      reader.readAsDataURL(file);
+
+      // Supabase에 이미지 업로드
+      try {
+        const folderName = modalData.title === "인물" ? "people" : "vehicles";
+        const uploadResult = await uploadImageToSupabase(
+          file,
+          "images",
+          folderName
+        );
+
+        if (uploadResult) {
+          setFormData({
+            ...formData,
+            photo_path: uploadResult,
+          });
+        } else {
+          console.error("이미지 업로드 실패");
+          // 업로드 실패 시 previewImage 초기화
+          setPreviewImage(null);
+        }
+      } catch (error) {
+        console.error("이미지 업로드 중 오류:", error);
+        // 업로드 실패 시 previewImage 초기화
+        setPreviewImage(null);
+      }
+    }
+  };
+
+  const getImageSrc = () => {
+    if (previewImage) return previewImage;
+    if (imageUrl) return imageUrl;
+    return modalData.photo.defaultValue;
+  };
+
+  if (mode === "READ") {
+    return (
+      <div className="relative w-full h-[100%] aspect-[2/1] rounded-lg border-2 border-gray-200 overflow-hidden">
+        <Image src={getImageSrc()} alt="photo" fill className="object-cover" />
+        {/* READ 모드에서는 버튼 없음 */}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-[100%] aspect-[2/1] rounded-lg border-2 border-gray-200 overflow-hidden">
+      <Image src={getImageSrc()} alt="photo" fill className="object-cover" />
+      <div className="absolute right-1 top-1">
+        <Button
+          className="bg-[var(--point)] rounded-full"
+          onClick={() => document.getElementById("photo-input")?.click()}
+        >
+          <FolderSearch2 />
+        </Button>
+        <Button
+          className="bg-red-500 rounded-full ml-1"
+          onClick={() => {
+            setPreviewImage(null);
+            setImageUrl(null);
+            setFormData({
+              ...formData,
+              photo_path: modalData.photo.defaultValue,
+            });
+          }}
+        >
+          <Trash />
+        </Button>
+      </div>
+      <input
+        id="photo-input"
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+    </div>
   );
 }
