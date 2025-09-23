@@ -119,6 +119,28 @@ export default function CommonModal({
   const [formData, setFormData] = useState(initialFormData);
   const [openDatePopover, setOpenDatePopover] = useState<string | null>(null);
   const [selectedDrivers, setSelectedDrivers] = useState<Driver[]>([]);
+  const [associatedDrivers, setAssociatedDrivers] = useState<Driver[]>([]);
+  const [driversToDelete, setDriversToDelete] = useState<Driver[]>([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
+
+  // 연관된 운전자 데이터 가져오기
+  const fetchAssociatedDrivers = async (vehicleId: string) => {
+    try {
+      const { getVehicleDrivers } = await import("@/hooks/useSupabase");
+      const result = await getVehicleDrivers(vehicleId);
+
+      if (result.error) {
+        console.error("운전자 데이터 가져오기 실패:", result.error);
+        setAssociatedDrivers([]);
+      } else {
+        setAssociatedDrivers(result.data || []);
+      }
+    } catch (error) {
+      console.error("운전자 데이터 가져오기 오류:", error);
+      setAssociatedDrivers([]);
+    }
+  };
 
   // 데이터가 변경될 때 formData와 initialFormData 업데이트
   useEffect(() => {
@@ -155,6 +177,13 @@ export default function CommonModal({
     });
 
     setFormData(newFormData);
+
+    // 차량 데이터가 있고 READ/UPDATE 모드일 때 연관된 운전자 데이터 가져오기
+    if (data?.id && (mode === "READ" || mode === "UPDATE")) {
+      fetchAssociatedDrivers(data.id);
+    } else {
+      setAssociatedDrivers([]);
+    }
   }, [data, mode, modalData.fields, modalData.photo]);
 
   // autoGenerate 처리
@@ -221,13 +250,57 @@ export default function CommonModal({
       if (isAlreadySelected) {
         return prev;
       }
+
+      // 이미 등록된 운전자인지 확인
+      const isAlreadyRegistered = associatedDrivers.some(
+        (d) => d.id === driver.id
+      );
+      if (isAlreadyRegistered) {
+        alert("이미 등록된 운전자입니다.");
+        return prev;
+      }
+
       return [...prev, driver];
     });
   };
 
-  // 운전자 제거 핸들러
+  // 운전자 제거 핸들러 (선택된 운전자에서 제거)
   const handleRemoveDriver = (driverId: string) => {
     setSelectedDrivers((prev) => prev.filter((d) => d.id !== driverId));
+  };
+
+  // 등록된 운전자 삭제 확인 핸들러
+  const handleDeleteDriverClick = (driver: Driver) => {
+    setDriverToDelete(driver);
+    setDeleteConfirmOpen(true);
+  };
+
+  // 운전자를 삭제 목록에 추가
+  const handleAddToDeleteList = () => {
+    if (!driverToDelete) return;
+
+    setDriversToDelete((prev) => {
+      // 이미 삭제 목록에 있는지 확인
+      const isAlreadyInList = prev.some((d) => d.id === driverToDelete.id);
+      if (isAlreadyInList) {
+        return prev;
+      }
+      return [...prev, driverToDelete];
+    });
+
+    setDeleteConfirmOpen(false);
+    setDriverToDelete(null);
+  };
+
+  // 삭제 목록에서 운전자 제거
+  const handleRemoveFromDeleteList = (driverId: string) => {
+    setDriversToDelete((prev) => prev.filter((d) => d.id !== driverId));
+  };
+
+  // 삭제 확인 모달 닫기
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setDriverToDelete(null);
   };
 
   // 모달 닫기 핸들러 (UPDATE 모드에서는 READ 모드로 복귀)
@@ -237,6 +310,9 @@ export default function CommonModal({
     } else {
       onCancel();
     }
+    // 모달 닫을 때 selectedDrivers와 driversToDelete 초기화
+    setSelectedDrivers([]);
+    setDriversToDelete([]);
   };
 
   return (
@@ -252,15 +328,6 @@ export default function CommonModal({
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {/* 사진 섹션 */}
-          {modalData.photo && (
-            <Photo
-              mode={mode}
-              formData={formData}
-              setFormData={setFormData}
-              modalData={modalData}
-            />
-          )}
           {/* 필드 섹션 */}
           <Tabs defaultValue="vehicle">
             <TabsList>
@@ -268,6 +335,15 @@ export default function CommonModal({
               <TabsTrigger value="people">운전자</TabsTrigger>
             </TabsList>
             <TabsContent value="vehicle" className="grid gap-4 py-4">
+              {/* 사진 섹션 */}
+              {modalData.photo && (
+                <Photo
+                  mode={mode}
+                  formData={formData}
+                  setFormData={setFormData}
+                  modalData={modalData}
+                />
+              )}
               {modalData.fields.map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
                   <Label className="w-22 flex-shrink-0 text-sm font-semibold">
@@ -418,63 +494,198 @@ export default function CommonModal({
               ))}
             </TabsContent>
             <TabsContent value="people" className="grid gap-4 py-4">
-              <div className="flex items-center justify-between gap-2">
-                <PersonSearchInput
-                  onSelectPerson={handleSelectDriver}
-                  placeholder="운전자 이름 검색"
-                  className="flex-1"
-                />
-              </div>
+              {/* READ 모드에서 연관된 운전자가 없는 경우 */}
+              {mode === "READ" && associatedDrivers.length === 0 && (
+                <div className="text-center text-gray-500 py-8">
+                  등록된 운전자가 없습니다.
+                </div>
+              )}
 
-              {/* 선택된 운전자 목록 */}
-              {selectedDrivers.length > 0 ? (
+              {/* 운전자 검색 및 선택 (ADD/UPDATE 모드에서만 표시) */}
+              {(mode === "ADD" || mode === "UPDATE") && (
+                <>
+                  <div className="flex items-center justify-between gap-2">
+                    <PersonSearchInput
+                      onSelectPerson={handleSelectDriver}
+                      placeholder="운전자 이름 검색"
+                      className="flex-1"
+                      excludedDrivers={associatedDrivers}
+                    />
+                  </div>
+
+                  {/* 선택된 운전자 목록 */}
+                  {selectedDrivers.length > 0 ? (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                        새로 추가할 운전자 ({selectedDrivers.length}명)
+                      </h4>
+                      {selectedDrivers.map((driver) => (
+                        <div
+                          key={driver.id}
+                          className="bg-gray-100 rounded-[20px] p-4 relative"
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
+                            onClick={() => handleRemoveDriver(driver.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <div className="pr-8">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm">
+                                운전자명: {driver.name}
+                              </span>
+                              {driver.status && driver.status !== "active" && (
+                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                  {driver.status}
+                                </span>
+                              )}
+                              {driver.vip_level &&
+                                driver.vip_level !== "none" && (
+                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                    {driver.vip_level}
+                                  </span>
+                                )}
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              소속:{" "}
+                              {driver.org_dept_pos
+                                ? driver.org_dept_pos
+                                : "소속 없음"}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              전화번호: {driver.phone_number}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      검색하여 운전자를 선택해주세요.
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* 연관된 운전자 목록 (READ/UPDATE 모드에서만 표시) */}
+              {associatedDrivers.length > 0 &&
+                (mode === "READ" || mode === "UPDATE") && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                      등록된 운전자 ({associatedDrivers.length}명)
+                    </h4>
+                    {associatedDrivers.map((driver) => {
+                      const isInDeleteList = driversToDelete.some(
+                        (d) => d.id === driver.id
+                      );
+                      return (
+                        <div
+                          key={driver.id}
+                          className={`${
+                            isInDeleteList
+                              ? "bg-red-50 border-red-200 opacity-60"
+                              : "bg-blue-50 border-blue-200"
+                          } border rounded-[20px] p-4 relative`}
+                        >
+                          {/* UPDATE 모드에서만 삭제 버튼 표시 */}
+                          {mode === "UPDATE" && !isInDeleteList && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
+                              onClick={() => handleDeleteDriverClick(driver)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {/* 삭제 목록에 있는 경우 표시 */}
+                          {mode === "UPDATE" && isInDeleteList && (
+                            <div className="absolute top-2 right-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                              삭제 예정
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mb-1 pr-8">
+                            <span className="font-medium text-sm">
+                              운전자명: {driver.name}
+                            </span>
+                            {driver.status && driver.status !== "active" && (
+                              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                {driver.status}
+                              </span>
+                            )}
+                            {driver.vip_level &&
+                              driver.vip_level !== "none" && (
+                                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                  {driver.vip_level}
+                                </span>
+                              )}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            소속:{" "}
+                            {driver.org_dept_pos
+                              ? driver.org_dept_pos
+                              : "소속 없음"}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            전화번호: {driver.phone_number}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+              {/* 삭제 예정인 운전자 목록 (UPDATE 모드에서만 표시) */}
+              {driversToDelete.length > 0 && mode === "UPDATE" && (
                 <div className="space-y-2">
-                  {selectedDrivers.map((driver) => (
+                  <h4 className="text-sm font-semibold text-red-700 mb-2">
+                    삭제 예정인 운전자 ({driversToDelete.length}명)
+                  </h4>
+                  {driversToDelete.map((driver) => (
                     <div
                       key={driver.id}
-                      className="bg-gray-100 rounded-[20px] p-4 relative"
+                      className="bg-red-50 border border-red-200 rounded-[20px] p-4 relative"
                     >
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
-                        onClick={() => handleRemoveDriver(driver.id)}
+                        onClick={() => handleRemoveFromDeleteList(driver.id)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                      <div className="pr-8">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">
-                            운전자명: {driver.name}
+                      <div className="flex items-center gap-2 mb-1 pr-8">
+                        <span className="font-medium text-sm">
+                          운전자명: {driver.name}
+                        </span>
+                        {driver.status && driver.status !== "active" && (
+                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                            {driver.status}
                           </span>
-                          {driver.status && driver.status !== "active" && (
-                            <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                              {driver.status}
-                            </span>
-                          )}
-                          {driver.vip_level && driver.vip_level !== "none" && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                              {driver.vip_level}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          소속:{" "}
-                          {driver.org_dept_pos
-                            ? driver.org_dept_pos
-                            : "소속 없음"}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          전화번호: {driver.phone_number}
-                        </p>
+                        )}
+                        {driver.vip_level && driver.vip_level !== "none" && (
+                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                            {driver.vip_level}
+                          </span>
+                        )}
                       </div>
+                      <p className="text-sm text-gray-600">
+                        소속:{" "}
+                        {driver.org_dept_pos
+                          ? driver.org_dept_pos
+                          : "소속 없음"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        전화번호: {driver.phone_number}
+                      </p>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  검색하여 운전자를 선택해주세요.
                 </div>
               )}
             </TabsContent>
@@ -534,6 +745,8 @@ export default function CommonModal({
                       ...formData,
                       selectedDrivers: selectedDrivers,
                     });
+                    // 저장 후 selectedDrivers 초기화
+                    setSelectedDrivers([]);
                   }
                 }}
               >
@@ -547,6 +760,7 @@ export default function CommonModal({
                 onClick={() => {
                   setFormData(initialFormData);
                   setSelectedDrivers([]);
+                  setDriversToDelete([]);
                 }}
                 variant="outline"
               >
@@ -555,6 +769,7 @@ export default function CommonModal({
               <Button
                 onClick={() => {
                   setMode("READ");
+                  setDriversToDelete([]);
                 }}
                 variant="outline"
               >
@@ -562,12 +777,48 @@ export default function CommonModal({
               </Button>
               <Button
                 className="bg-[var(--point)]"
-                onClick={() => {
+                onClick={async () => {
                   if (onSubmit) {
+                    // 삭제할 운전자들이 있는 경우 실제 삭제 수행
+                    if (driversToDelete.length > 0) {
+                      try {
+                        const { deletePersonVehicleRelation } = await import(
+                          "@/hooks/useSupabase"
+                        );
+
+                        for (const driver of driversToDelete) {
+                          const result = await deletePersonVehicleRelation(
+                            data?.id,
+                            driver.id
+                          );
+                          if (result.error) {
+                            console.error(
+                              `운전자 ${driver.name} 삭제 실패:`,
+                              result.error
+                            );
+                            alert(`운전자 ${driver.name} 삭제에 실패했습니다.`);
+                            return;
+                          }
+                        }
+
+                        // 삭제 성공 시 연관된 운전자 목록 새로고침
+                        if (data?.id) {
+                          await fetchAssociatedDrivers(data.id);
+                        }
+                      } catch (error) {
+                        console.error("운전자 삭제 중 오류:", error);
+                        alert("운전자 삭제 중 오류가 발생했습니다.");
+                        return;
+                      }
+                    }
+
                     onSubmit({
                       ...formData,
                       selectedDrivers: selectedDrivers,
                     });
+                    // 저장 후 selectedDrivers와 driversToDelete 초기화
+                    setSelectedDrivers([]);
+                    setDriversToDelete([]);
                   }
                 }}
               >
@@ -577,6 +828,32 @@ export default function CommonModal({
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* 삭제 확인 모달 */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>운전자 삭제 확인</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">{driverToDelete?.name}</span>{" "}
+              운전자를 삭제 목록에 추가하시겠습니까?
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              저장 버튼을 눌러야 실제로 삭제됩니다.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleDeleteCancel} variant="outline">
+              취소
+            </Button>
+            <Button onClick={handleAddToDeleteList} variant="destructive">
+              삭제 목록에 추가
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

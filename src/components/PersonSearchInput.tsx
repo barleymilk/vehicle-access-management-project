@@ -9,12 +9,14 @@ interface PersonSearchInputProps {
   onSelectPerson: (person: Driver) => void;
   placeholder?: string;
   className?: string;
+  excludedDrivers?: Driver[]; // 이미 등록된 운전자 목록
 }
 
 export default function PersonSearchInput({
   onSelectPerson,
   placeholder = "검색",
   className = "",
+  excludedDrivers = [],
 }: PersonSearchInputProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -86,25 +88,29 @@ export default function PersonSearchInput({
 
   // 키보드 네비게이션
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isOpen || !searchResults || searchResults.length === 0) return;
+    if (!isOpen || !filteredSearchResults || filteredSearchResults.length === 0)
+      return;
 
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < searchResults.length - 1 ? prev + 1 : 0
+          prev < filteredSearchResults.length - 1 ? prev + 1 : 0
         );
         break;
       case "ArrowUp":
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : searchResults.length - 1
+          prev > 0 ? prev - 1 : filteredSearchResults.length - 1
         );
         break;
       case "Enter":
         e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
-          handleSelectPerson(searchResults[selectedIndex]);
+        if (
+          selectedIndex >= 0 &&
+          selectedIndex < filteredSearchResults.length
+        ) {
+          handleSelectPerson(filteredSearchResults[selectedIndex]);
         }
         break;
       case "Escape":
@@ -116,6 +122,15 @@ export default function PersonSearchInput({
   };
 
   const handleSelectPerson = (person: Driver) => {
+    // 이미 등록된 운전자인지 확인
+    const isExcluded = excludedDrivers.some(
+      (driver) => driver.id === person.id
+    );
+    if (isExcluded) {
+      alert("이미 등록된 운전자입니다.");
+      return;
+    }
+
     onSelectPerson(person);
     setSearchTerm("");
     setDebouncedSearchTerm("");
@@ -152,6 +167,16 @@ export default function PersonSearchInput({
     return tags.join(" ");
   };
 
+  // 이미 등록된 운전자인지 확인하는 함수
+  const isExcludedDriver = (person: Driver) => {
+    return excludedDrivers.some((driver) => driver.id === person.id);
+  };
+
+  // 검색 결과에서 이미 등록된 운전자 필터링
+  const filteredSearchResults = searchResults.filter(
+    (person) => !isExcludedDriver(person)
+  );
+
   return (
     <div className={`relative ${className}`}>
       <div className="flex items-center gap-2">
@@ -163,7 +188,7 @@ export default function PersonSearchInput({
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => {
-              if (searchResults.length > 0) {
+              if (filteredSearchResults.length > 0) {
                 setIsOpen(true);
               }
             }}
@@ -198,12 +223,16 @@ export default function PersonSearchInput({
             <div className="p-3 text-center text-red-500">
               검색 중 오류가 발생했습니다.
             </div>
-          ) : !searchResults || searchResults.length === 0 ? (
+          ) : !filteredSearchResults || filteredSearchResults.length === 0 ? (
             <div className="p-3 text-center text-gray-500">
-              검색 결과가 없습니다.
+              {searchResults &&
+              searchResults.length > 0 &&
+              excludedDrivers.length > 0
+                ? "추가할 수 있는 운전자가 없습니다. (모든 검색 결과가 이미 등록됨)"
+                : "검색 결과가 없습니다."}
             </div>
           ) : (
-            searchResults.map((person, index) => (
+            filteredSearchResults.map((person, index) => (
               <div
                 key={person.id}
                 className={`p-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${

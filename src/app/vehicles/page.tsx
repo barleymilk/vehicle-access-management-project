@@ -6,6 +6,7 @@ import {
   useFilteredVehicles,
   addVehicleToSupabase,
   updateVehicleInSupabase,
+  savePersonVehicleRelations,
 } from "@/hooks/useSupabase";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { DataTable } from "@/components/DataTable";
@@ -229,6 +230,35 @@ export default function Vehicles() {
           throw new Error(`데이터 저장 실패: ${errorMessage}`);
         }
 
+        // 운전자 목록이 있는 경우 Person_Vehicle 테이블에 저장
+        if (
+          data.selectedDrivers &&
+          Array.isArray(data.selectedDrivers) &&
+          data.selectedDrivers.length > 0
+        ) {
+          const vehicleId = result.data?.[0]?.id;
+          if (vehicleId) {
+            const personIds = data.selectedDrivers.map(
+              (driver: { id: string }) => driver.id
+            );
+            const personVehicleResult = await savePersonVehicleRelations(
+              vehicleId,
+              personIds
+            );
+
+            if (personVehicleResult.error) {
+              console.error(
+                "Person_Vehicle 테이블 저장 실패:",
+                personVehicleResult.error
+              );
+              // Person_Vehicle 저장 실패해도 차량은 이미 저장되었으므로 경고만 표시
+              alert(
+                "차량은 저장되었지만 운전자 연결에 실패했습니다. 차량 수정에서 다시 시도해주세요."
+              );
+            }
+          }
+        }
+
         // 성공 시 처리
         setCommonModalOpen(false);
         refetch(); // 차량 데이터 새로고침
@@ -248,6 +278,32 @@ export default function Vehicles() {
               ? String((result.error as Record<string, unknown>).message)
               : "알 수 없는 오류";
           throw new Error(`데이터 수정 실패: ${errorMessage}`);
+        }
+
+        // 운전자 목록이 있는 경우 Person_Vehicle 테이블에 저장
+        if (
+          data.selectedDrivers &&
+          Array.isArray(data.selectedDrivers) &&
+          data.selectedDrivers.length > 0
+        ) {
+          const personIds = data.selectedDrivers.map(
+            (driver: { id: string }) => driver.id
+          );
+          const personVehicleResult = await savePersonVehicleRelations(
+            selectedRecord.id,
+            personIds
+          );
+
+          if (personVehicleResult.error) {
+            console.error(
+              "Person_Vehicle 테이블 저장 실패:",
+              personVehicleResult.error
+            );
+            // Person_Vehicle 저장 실패해도 차량은 이미 수정되었으므로 경고만 표시
+            alert(
+              "차량은 수정되었지만 운전자 연결에 실패했습니다. 다시 시도해주세요."
+            );
+          }
         }
 
         // 성공 시 처리

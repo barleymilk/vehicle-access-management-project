@@ -933,3 +933,123 @@ export function usePeopleSearch(searchTerm: string, enabled = true) {
 
   return { data, loading, error };
 }
+
+// Person_Vehicle 테이블에 데이터 저장 함수
+export async function savePersonVehicleRelations(
+  vehicleId: string,
+  personIds: string[]
+) {
+  try {
+    // 필수 필드 검증
+    if (
+      !vehicleId ||
+      !personIds ||
+      !Array.isArray(personIds) ||
+      personIds.length === 0
+    ) {
+      throw new Error("차량 ID와 운전자 ID 목록은 필수입니다.");
+    }
+
+    // Person_Vehicle 테이블에 데이터 삽입
+    const personVehicleData = personIds.map((person_id: string) => ({
+      vehicle_id: vehicleId,
+      person_id,
+      created_at: new Date().toISOString(),
+    }));
+
+    const { data, error } = await supabase
+      .from("Person_Vehicle")
+      .insert(personVehicleData)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("Person_Vehicle 테이블 저장 중 오류:", error);
+    return { data: null, error };
+  }
+}
+
+// 차량 ID로 연관된 운전자 목록 조회 함수
+export async function getVehicleDrivers(vehicleId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("Person_Vehicle")
+      .select(
+        `
+        person_id,
+        People (
+          id,
+          name,
+          organization,
+          department,
+          position,
+          phone_number,
+          vip_level,
+          status,
+          org_dept_pos
+        )
+      `
+      )
+      .eq("vehicle_id", vehicleId);
+
+    if (error) {
+      throw error;
+    }
+
+    // 데이터 변환
+    const drivers =
+      data?.map((item: any) => ({
+        id: item.People.id,
+        name: item.People.name,
+        organization: item.People.organization,
+        department: item.People.department,
+        position: item.People.position,
+        phone_number: item.People.phone_number,
+        vip_level: item.People.vip_level,
+        status: item.People.status,
+        org_dept_pos: item.People.org_dept_pos,
+        activity_start_date: item.People.activity_start_date || "",
+        activity_end_date: item.People.activity_end_date || "",
+        contact_person_name: item.People.contact_person_name || "",
+        contact_person_phone: item.People.contact_person_phone || "",
+      })) || [];
+
+    return { data: drivers, error: null };
+  } catch (error) {
+    console.error("차량 운전자 조회 중 오류:", error);
+    return { data: null, error };
+  }
+}
+
+// Person_Vehicle 테이블에서 데이터 삭제 함수
+export async function deletePersonVehicleRelation(
+  vehicleId: string,
+  personId: string
+) {
+  try {
+    // 필수 필드 검증
+    if (!vehicleId || !personId) {
+      throw new Error("차량 ID와 운전자 ID는 필수입니다.");
+    }
+
+    const { data, error } = await supabase
+      .from("Person_Vehicle")
+      .delete()
+      .eq("vehicle_id", vehicleId)
+      .eq("person_id", personId)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (error) {
+    console.error("Person_Vehicle 테이블 삭제 중 오류:", error);
+    return { data: null, error };
+  }
+}
