@@ -296,6 +296,7 @@ export default function People() {
           data={selectedRecord}
           title="인물"
           modalData={PEOPLE_MODAL_DATA}
+          isPeopleModal={true}
           onSubmit={async (data) => {
             try {
               if (commonModalState === "ADD") {

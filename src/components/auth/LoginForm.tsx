@@ -16,8 +16,8 @@ export default function LoginForm({
   onForgotPassword,
 }: LoginFormProps) {
   const [credentials, setCredentials] = useState<LoginCredentials>({
-    email: "",
-    password: "",
+    email: "barleymilk640@gmail.com",
+    password: "987654",
   });
   const [isLoading, setIsLoading] = useState(false);
   const { login, error } = useAuth();

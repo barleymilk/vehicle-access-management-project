@@ -43,6 +43,7 @@ interface CommonModalProps {
   onSubmit?: (data: any) => void; // 저장/추가/수정 시 호출
   onModeChange?: (mode: "READ" | "ADD" | "UPDATE") => void; // 모드 변경 시 호출
   disableEdit?: boolean; // 수정 기능 비활성화
+  isPeopleModal?: boolean; // 인물 모달인지 여부 (탭 순서와 사진 모양 제어)
 }
 
 export default function CommonModal({
@@ -55,6 +56,7 @@ export default function CommonModal({
   onSubmit,
   onModeChange,
   disableEdit = false,
+  isPeopleModal = false,
 }: CommonModalProps) {
   const [mode, setMode] = useState<"READ" | "ADD" | "UPDATE">(state); // mode: READ, ADD, UPDATE
   const dialogContentRef = useRef<HTMLDivElement>(null);
@@ -123,6 +125,16 @@ export default function CommonModal({
   const [driversToDelete, setDriversToDelete] = useState<Driver[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
+  const [associatedVehicles, setAssociatedVehicles] = useState<
+    Array<{
+      id: string;
+      plate_number: string;
+      vehicle_type: string;
+      is_public_vehicle: boolean;
+      owner_department: string;
+      status: string;
+    }>
+  >([]);
 
   // 연관된 운전자 데이터 가져오기
   const fetchAssociatedDrivers = async (vehicleId: string) => {
@@ -139,6 +151,52 @@ export default function CommonModal({
     } catch (error) {
       console.error("운전자 데이터 가져오기 오류:", error);
       setAssociatedDrivers([]);
+    }
+  };
+
+  // 연관된 차량 데이터 가져오기 (인물 모달용)
+  const fetchAssociatedVehicles = async (personId: string) => {
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data, error } = await supabase
+        .from("Person_Vehicle")
+        .select(
+          `
+          vehicle_id,
+          Vehicles (
+            id,
+            plate_number,
+            vehicle_type,
+            is_public_vehicle,
+            owner_department,
+            status
+          )
+        `
+        )
+        .eq("person_id", personId);
+
+      if (error) {
+        console.error("차량 데이터 가져오기 실패:", error);
+        setAssociatedVehicles([]);
+      } else {
+        // 데이터 변환
+
+        const vehicles =
+          data
+            ?.map((item: any) => ({
+              id: item.Vehicles?.id || "",
+              plate_number: item.Vehicles?.plate_number || "",
+              vehicle_type: item.Vehicles?.vehicle_type || "",
+              is_public_vehicle: item.Vehicles?.is_public_vehicle || false,
+              owner_department: item.Vehicles?.owner_department || "",
+              status: item.Vehicles?.status || "",
+            }))
+            .filter((vehicle) => vehicle.id) || [];
+        setAssociatedVehicles(vehicles);
+      }
+    } catch (error) {
+      console.error("차량 데이터 가져오기 오류:", error);
+      setAssociatedVehicles([]);
     }
   };
 
@@ -178,13 +236,22 @@ export default function CommonModal({
 
     setFormData(newFormData);
 
-    // 차량 데이터가 있고 READ/UPDATE 모드일 때 연관된 운전자 데이터 가져오기
+    // 데이터가 있고 READ/UPDATE 모드일 때 연관된 데이터 가져오기
     if (data?.id && (mode === "READ" || mode === "UPDATE")) {
-      fetchAssociatedDrivers(data.id);
+      if (isPeopleModal) {
+        // 인물 모달: 연결된 차량 데이터 가져오기
+        fetchAssociatedVehicles(data.id);
+        setAssociatedDrivers([]);
+      } else {
+        // 차량 모달: 연관된 운전자 데이터 가져오기
+        fetchAssociatedDrivers(data.id);
+        setAssociatedVehicles([]);
+      }
     } else {
       setAssociatedDrivers([]);
+      setAssociatedVehicles([]);
     }
-  }, [data, mode, modalData.fields, modalData.photo]);
+  }, [data, mode, modalData.fields, modalData.photo, isPeopleModal]);
 
   // autoGenerate 처리
   useEffect(() => {
@@ -329,12 +396,16 @@ export default function CommonModal({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           {/* 필드 섹션 */}
-          <Tabs defaultValue="vehicle">
+          <Tabs defaultValue="detail">
             <TabsList>
-              <TabsTrigger value="vehicle">차량</TabsTrigger>
-              <TabsTrigger value="people">운전자</TabsTrigger>
+              <TabsTrigger value="detail">
+                {isPeopleModal ? "운전자" : "차량"}
+              </TabsTrigger>
+              <TabsTrigger value="relation">
+                {isPeopleModal ? "연결된 차량" : "운전자"}
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="vehicle" className="grid gap-4 py-4">
+            <TabsContent value="detail" className="grid gap-4 py-4">
               {/* 사진 섹션 */}
               {modalData.photo && (
                 <Photo
@@ -342,6 +413,7 @@ export default function CommonModal({
                   formData={formData}
                   setFormData={setFormData}
                   modalData={modalData}
+                  isPeopleModal={isPeopleModal}
                 />
               )}
               {modalData.fields.map((item) => (
@@ -493,201 +565,261 @@ export default function CommonModal({
                 </div>
               ))}
             </TabsContent>
-            <TabsContent value="people" className="grid gap-4 py-4">
-              {/* READ 모드에서 연관된 운전자가 없는 경우 */}
-              {mode === "READ" && associatedDrivers.length === 0 && (
-                <div className="text-center text-gray-500 py-8">
-                  등록된 운전자가 없습니다.
-                </div>
-              )}
-
-              {/* 운전자 검색 및 선택 (ADD/UPDATE 모드에서만 표시) */}
-              {(mode === "ADD" || mode === "UPDATE") && (
+            <TabsContent value="relation" className="grid gap-4 py-4">
+              {/* 인물 모달: 연결된 차량 목록 */}
+              {isPeopleModal ? (
                 <>
-                  <div className="flex items-center justify-between gap-2">
-                    <PersonSearchInput
-                      onSelectPerson={handleSelectDriver}
-                      placeholder="운전자 이름 검색"
-                      className="flex-1"
-                      excludedDrivers={associatedDrivers}
-                    />
-                  </div>
-
-                  {/* 선택된 운전자 목록 */}
-                  {selectedDrivers.length > 0 ? (
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        새로 추가할 운전자 ({selectedDrivers.length}명)
-                      </h4>
-                      {selectedDrivers.map((driver) => (
-                        <div
-                          key={driver.id}
-                          className="bg-gray-100 rounded-[20px] p-4 relative"
-                        >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
-                            onClick={() => handleRemoveDriver(driver.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <div className="pr-8">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-sm">
-                                운전자명: {driver.name}
-                              </span>
-                              {driver.status && driver.status !== "active" && (
-                                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                  {driver.status}
-                                </span>
-                              )}
-                              {driver.vip_level &&
-                                driver.vip_level !== "none" && (
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                                    {driver.vip_level}
-                                  </span>
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-600">
-                              소속:{" "}
-                              {driver.org_dept_pos
-                                ? driver.org_dept_pos
-                                : "소속 없음"}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              전화번호: {driver.phone_number}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
+                  {/* READ 모드에서 연결된 차량이 없는 경우 */}
+                  {mode === "READ" && associatedVehicles.length === 0 && (
                     <div className="text-center text-gray-500 py-8">
-                      검색하여 운전자를 선택해주세요.
+                      연결된 차량이 없습니다.
                     </div>
                   )}
+
+                  {/* 연결된 차량 목록 (READ/UPDATE 모드에서만 표시) */}
+                  {associatedVehicles.length > 0 &&
+                    (mode === "READ" || mode === "UPDATE") && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                          연결된 차량 ({associatedVehicles.length}대)
+                        </h4>
+                        {associatedVehicles.map((vehicle) => (
+                          <div
+                            key={vehicle.id}
+                            className="bg-blue-50 border border-blue-200 rounded-[20px] p-4"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-sm">
+                                차량번호: {vehicle.plate_number}
+                              </span>
+                              {vehicle.status &&
+                                vehicle.status !== "active" && (
+                                  <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                    {vehicle.status}
+                                  </span>
+                                )}
+                              {vehicle.is_public_vehicle && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                  공용차량
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              차량종류: {vehicle.vehicle_type || "미분류"}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              소유부서: {vehicle.owner_department || "미분류"}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                </>
+              ) : (
+                <>
+                  {/* 차량 모달: 연관된 운전자 목록 */}
+                  {/* READ 모드에서 연관된 운전자가 없는 경우 */}
+                  {mode === "READ" && associatedDrivers.length === 0 && (
+                    <div className="text-center text-gray-500 py-8">
+                      등록된 운전자가 없습니다.
+                    </div>
+                  )}
+
+                  {/* 운전자 검색 및 선택 (ADD/UPDATE 모드에서만 표시) */}
+                  {(mode === "ADD" || mode === "UPDATE") && (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <PersonSearchInput
+                          onSelectPerson={handleSelectDriver}
+                          placeholder="운전자 이름 검색"
+                          className="flex-1"
+                          excludedDrivers={associatedDrivers}
+                        />
+                      </div>
+
+                      {/* 선택된 운전자 목록 */}
+                      {selectedDrivers.length > 0 ? (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                            새로 추가할 운전자 ({selectedDrivers.length}명)
+                          </h4>
+                          {selectedDrivers.map((driver) => (
+                            <div
+                              key={driver.id}
+                              className="bg-gray-100 rounded-[20px] p-4 relative"
+                            >
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
+                                onClick={() => handleRemoveDriver(driver.id)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                              <div className="pr-8">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-medium text-sm">
+                                    운전자명: {driver.name}
+                                  </span>
+                                  {driver.status &&
+                                    driver.status !== "active" && (
+                                      <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                        {driver.status}
+                                      </span>
+                                    )}
+                                  {driver.vip_level &&
+                                    driver.vip_level !== "none" && (
+                                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                        {driver.vip_level}
+                                      </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                  소속:{" "}
+                                  {driver.org_dept_pos
+                                    ? driver.org_dept_pos
+                                    : "소속 없음"}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  전화번호: {driver.phone_number}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-8">
+                          검색하여 운전자를 선택해주세요.
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* 연관된 운전자 목록 (READ/UPDATE 모드에서만 표시) */}
+                  {associatedDrivers.length > 0 &&
+                    (mode === "READ" || mode === "UPDATE") && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                          등록된 운전자 ({associatedDrivers.length}명)
+                        </h4>
+                        {associatedDrivers.map((driver) => {
+                          const isInDeleteList = driversToDelete.some(
+                            (d) => d.id === driver.id
+                          );
+                          return (
+                            <div
+                              key={driver.id}
+                              className={`${
+                                isInDeleteList
+                                  ? "bg-red-50 border-red-200 opacity-60"
+                                  : "bg-blue-50 border-blue-200"
+                              } border rounded-[20px] p-4 relative`}
+                            >
+                              {/* UPDATE 모드에서만 삭제 버튼 표시 */}
+                              {mode === "UPDATE" && !isInDeleteList && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
+                                  onClick={() =>
+                                    handleDeleteDriverClick(driver)
+                                  }
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {/* 삭제 목록에 있는 경우 표시 */}
+                              {mode === "UPDATE" && isInDeleteList && (
+                                <div className="absolute top-2 right-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                  삭제 예정
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 mb-1 pr-8">
+                                <span className="font-medium text-sm">
+                                  운전자명: {driver.name}
+                                </span>
+                                {driver.status &&
+                                  driver.status !== "active" && (
+                                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                      {driver.status}
+                                    </span>
+                                  )}
+                                {driver.vip_level &&
+                                  driver.vip_level !== "none" && (
+                                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                      {driver.vip_level}
+                                    </span>
+                                  )}
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                소속:{" "}
+                                {driver.org_dept_pos
+                                  ? driver.org_dept_pos
+                                  : "소속 없음"}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                전화번호: {driver.phone_number}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                 </>
               )}
 
-              {/* 연관된 운전자 목록 (READ/UPDATE 모드에서만 표시) */}
-              {associatedDrivers.length > 0 &&
-                (mode === "READ" || mode === "UPDATE") && (
+              {/* 삭제 예정인 운전자 목록 (차량 모달, UPDATE 모드에서만 표시) */}
+              {!isPeopleModal &&
+                driversToDelete.length > 0 &&
+                mode === "UPDATE" && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                      등록된 운전자 ({associatedDrivers.length}명)
+                    <h4 className="text-sm font-semibold text-red-700 mb-2">
+                      삭제 예정인 운전자 ({driversToDelete.length}명)
                     </h4>
-                    {associatedDrivers.map((driver) => {
-                      const isInDeleteList = driversToDelete.some(
-                        (d) => d.id === driver.id
-                      );
-                      return (
-                        <div
-                          key={driver.id}
-                          className={`${
-                            isInDeleteList
-                              ? "bg-red-50 border-red-200 opacity-60"
-                              : "bg-blue-50 border-blue-200"
-                          } border rounded-[20px] p-4 relative`}
+                    {driversToDelete.map((driver) => (
+                      <div
+                        key={driver.id}
+                        className="bg-red-50 border border-red-200 rounded-[20px] p-4 relative"
+                      >
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
+                          onClick={() => handleRemoveFromDeleteList(driver.id)}
                         >
-                          {/* UPDATE 모드에서만 삭제 버튼 표시 */}
-                          {mode === "UPDATE" && !isInDeleteList && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
-                              onClick={() => handleDeleteDriverClick(driver)}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {/* 삭제 목록에 있는 경우 표시 */}
-                          {mode === "UPDATE" && isInDeleteList && (
-                            <div className="absolute top-2 right-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                              삭제 예정
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 mb-1 pr-8">
-                            <span className="font-medium text-sm">
-                              운전자명: {driver.name}
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <div className="flex items-center gap-2 mb-1 pr-8">
+                          <span className="font-medium text-sm">
+                            운전자명: {driver.name}
+                          </span>
+                          {driver.status && driver.status !== "active" && (
+                            <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                              {driver.status}
                             </span>
-                            {driver.status && driver.status !== "active" && (
-                              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                {driver.status}
-                              </span>
-                            )}
-                            {driver.vip_level &&
-                              driver.vip_level !== "none" && (
-                                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                                  {driver.vip_level}
-                                </span>
-                              )}
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            소속:{" "}
-                            {driver.org_dept_pos
-                              ? driver.org_dept_pos
-                              : "소속 없음"}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            전화번호: {driver.phone_number}
-                          </p>
+                          )}
+                          {driver.vip_level && driver.vip_level !== "none" && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                              {driver.vip_level}
+                            </span>
+                          )}
                         </div>
-                      );
-                    })}
+                        <p className="text-sm text-gray-600">
+                          소속:{" "}
+                          {driver.org_dept_pos
+                            ? driver.org_dept_pos
+                            : "소속 없음"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          전화번호: {driver.phone_number}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 )}
-
-              {/* 삭제 예정인 운전자 목록 (UPDATE 모드에서만 표시) */}
-              {driversToDelete.length > 0 && mode === "UPDATE" && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-red-700 mb-2">
-                    삭제 예정인 운전자 ({driversToDelete.length}명)
-                  </h4>
-                  {driversToDelete.map((driver) => (
-                    <div
-                      key={driver.id}
-                      className="bg-red-50 border border-red-200 rounded-[20px] p-4 relative"
-                    >
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-500 hover:text-red-500"
-                        onClick={() => handleRemoveFromDeleteList(driver.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <div className="flex items-center gap-2 mb-1 pr-8">
-                        <span className="font-medium text-sm">
-                          운전자명: {driver.name}
-                        </span>
-                        {driver.status && driver.status !== "active" && (
-                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                            {driver.status}
-                          </span>
-                        )}
-                        {driver.vip_level && driver.vip_level !== "none" && (
-                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                            {driver.vip_level}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        소속:{" "}
-                        {driver.org_dept_pos
-                          ? driver.org_dept_pos
-                          : "소속 없음"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        전화번호: {driver.phone_number}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </TabsContent>
           </Tabs>
         </div>
@@ -863,6 +995,7 @@ function Photo({
   formData,
   setFormData,
   modalData,
+  isPeopleModal = false,
 }: {
   mode: "READ" | "ADD" | "UPDATE";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -870,6 +1003,7 @@ function Photo({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setFormData: (data: Record<string, any>) => void;
   modalData: ModalData;
+  isPeopleModal?: boolean;
 }) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -948,7 +1082,13 @@ function Photo({
 
   if (mode === "READ") {
     return (
-      <div className="relative w-full h-[100%] aspect-[2/1] rounded-lg border-2 border-gray-200 overflow-hidden">
+      <div
+        className={`relative h-full ${
+          isPeopleModal
+            ? "w-[30%] aspect-square rounded-full border-2 border-gray-200 overflow-hidden m-auto"
+            : "w-full aspect-[2/1] rounded-lg border-2 border-gray-200 overflow-hidden"
+        }`}
+      >
         <Image src={getImageSrc()} alt="photo" fill className="object-cover" />
         {/* READ 모드에서는 버튼 없음 */}
       </div>
@@ -956,8 +1096,14 @@ function Photo({
   }
 
   return (
-    <div className="relative w-full h-[100%] aspect-[2/1] rounded-lg border-2 border-gray-200 overflow-hidden">
-      <Image src={getImageSrc()} alt="photo" fill className="object-cover" />
+    <div className="relative">
+      <div
+        className={`relative rounded-full border-2 border-gray-200 overflow-hidden ${
+          isPeopleModal ? "w-[30%] aspect-square m-auto" : "w-full aspect-[2/1]"
+        }`}
+      >
+        <Image src={getImageSrc()} alt="photo" fill className="object-cover" />
+      </div>
       <div className="absolute right-1 top-1">
         <Button
           className="bg-[var(--point)] rounded-full"
